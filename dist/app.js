@@ -31,7 +31,7 @@ const copy = {
   gone:['Bu taqinchoq hozir katalogda yo‘q.','Этого украшения сейчас нет в каталоге.'],
   weight:['Vazni','Вес'], size:['O‘lchami','Размер'], stock:['Mavjudligi','Наличие'],
   available:['Mavjud','В наличии'], unavailable:['Mavjud emas','Нет в наличии'],
-  add:['Savatga qo‘shish','В корзину'], added:['Savatga qo‘shildi','Добавлено в корзину'],
+  add:['Savatga qo‘shish','В корзину'], added:['Savatga qo‘shildi','Добавлено в корзину'], inCart:['Savatingizda','В вашей корзине'], pieces:['ta','шт.'],
   emptyCart:['Savatingiz bo‘sh.','Ваша корзина пуста.'], total:['Jami','Итого'],
   remove:['Olib tashlash','Удалить'], less:['Miqdorni kamaytirish','Уменьшить количество'],
   more:['Miqdorni oshirish','Увеличить количество'], cartChanged:['Savat yangilandi','Корзина обновлена'],
@@ -78,6 +78,9 @@ const iconPaths = {
   arrow:'<path d="M3 12h17m-6-6 6 6-6 6"/>',
   gem:'<path d="m12 2 9 9-9 11-9-11zM3 11h18m-9-9-4 9 4 11 4-11z"/>',
   box:'<path d="M4 7l8-4 8 4v11l-8 4-8-4zm0 0 8 4 8-4m-8 4v11"/>',
+  send:'<path d="m22 2-7 20-4-9-9-4zM22 2 11 13"/>',
+  bell:'<path d="M18 8a6 6 0 0 0-12 0c0 8-3 8-3 10h18c0-2-3-2-3-10m-9 13a3 3 0 0 0 6 0"/>',
+  trash:'<path d="M3 6h18M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7m4-7v7"/>',
   help:'<path d="M4 4h16v12H9l-5 4z"/><path d="M8 9h8m-8 3h5"/>'
 };
 const icon = key => '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">' + iconPaths[key] + '</svg>';
@@ -91,8 +94,8 @@ const route = () => {
   const [path, query] = location.hash.slice(1).split('?');
   return {path, params: new URLSearchParams(query)};
 };
-function inform(key) {
-  $('#notice').textContent = t(key);
+function inform(key, detail = '') {
+  $('#notice').textContent = detail || t(key);
   clearTimeout(noticeTimer);
   noticeTimer = setTimeout(() => { $('#notice').textContent = ''; }, 2800);
 }
@@ -162,6 +165,7 @@ function header(preserve = false) {
       <a class="wordmark" href="${storefront}#home" aria-label="M Gold · ${t('home')}"><img src="assets/mark.svg?v=facet" alt="">M GOLD</a>
       ${isAdmin ? '' : `<div class="header-actions">
         <a class="icon-link" href="#catalog?focus=search" aria-label="${t('search')}">${icon('search')}</a>
+        <a class="icon-link header-chat" href="#chat" aria-label="${t('chat')}" title="${t('chat')}">${icon('help')}<span>${t('chatShort')}</span></a>
         <a id="header-cart" class="icon-link" href="#cart" aria-label="${t('cart')} · ${count}">${icon('bag')}<span class="count" aria-hidden="true">${count}</span></a>
       </div>`}
     </div>
@@ -271,6 +275,26 @@ function sizeText(size) {
 }
 const productPhotos = product => product.photos ?? (product.photo ? [product.photo] : []);
 
+function itemCartQuantity(product) {
+  const quantity = basket[product.id] ?? 0;
+  return quantity ? t('inCart') + ' · ' + number(quantity) + ' ' + t('pieces') : '';
+}
+
+function purchaseControls(product) {
+  const id = escapeHtml(product.id);
+  const quantity = basket[product.id] ?? 0;
+  if (!product.available || !quantity) {
+    return `<button type="button" class="button" data-add="${id}" ${product.available ? '' : 'disabled'}>${icon('bag')}${t('add')}</button>`;
+  }
+  return `<div class="product-reservation">
+    <div class="quantity"><button type="button" data-qty="${id}" data-delta="-1" aria-label="${t('less')}">−</button>
+      <strong aria-label="${itemCartQuantity(product)}">${quantity}</strong>
+      <button type="button" data-qty="${id}" data-delta="1" aria-label="${t('more')}" ${quantity >= 99 ? 'disabled' : ''}>+</button>
+    </div>
+    ${localMode ? btn('cart','#cart',true) : `<button type="button" class="button" id="start-chat" data-reserve-item="${id}">${t('startChat')}</button>`}
+  </div>`;
+}
+
 function detail(product, preview = false) {
   const photos = productPhotos(product);
   const specs = [['purity',product.purity],['weight',number(product.weight) + (lang ? ' г' : ' g')],
@@ -282,7 +306,7 @@ function detail(product, preview = false) {
     <div><span class="eyebrow">${categoryName(product.category)}</span><${preview ? 'h2' : 'h1'}>${escapeHtml(local(product))}</${preview ? 'h2' : 'h1'}>
       <p class="price">${money(product.price)}</p><p>${escapeHtml(lang ? product.descRu : product.descUz)}</p>
       <dl class="specs">${specs.map(([label,value]) => `<div><dt>${copy[label] ? t(label) : label}</dt><dd>${escapeHtml(value)}</dd></div>`).join('')}</dl>
-      ${preview ? '' : `<button type="button" class="button" data-add="${escapeHtml(product.id)}" ${product.available ? '' : 'disabled'}>${icon('bag')}${t('add')}</button>`}
+      ${preview ? '' : `<div id="product-purchase">${purchaseControls(product)}</div>`}
     </div></article>`;
 }
 function cartPage() {
@@ -443,7 +467,7 @@ function render(preserve = false) {
     </form>`);
   } else if (catalogState !== 'ready') {
     markup = page(t(isAdmin ? 'admin' : 'shop'), `<p class="empty">${t(catalogState)}</p>`);
-  } else if (!localMode && ((isAdmin && path === 'admin/chat') || (!isAdmin && path === 'chat' && visitorThread))) {
+  } else if ((!localMode && isAdmin && path === 'admin/chat') || (!isAdmin && path === 'chat')) {
     markup = chatPage();
   } else if (isAdmin) {
     const id = path.split('/')[1];
@@ -593,13 +617,16 @@ document.addEventListener('click', async event => {
     if (!product) return;
     const amount = remove ? 0 : (basket[product.id] || 0) + Number(delta ?? 1);
     if (!setCart(product,amount)) return;
-    if (add) header();
-    else {
-      render();
-      const control = qty && (`[data-qty="${qty}"][data-delta="${delta}"]:not(:disabled)`);
-      ((control && $(control)) || $('.quantity button') || $('#main')).focus({preventScroll:true});
-    }
-    inform(add ? 'added' : 'cartChanged');
+    const purchase = $('#product-purchase');
+    if (purchase) {
+      header();
+      updateMarkup(purchase,purchaseControls(product));
+    } else render();
+    const control = qty && `[data-qty="${qty}"][data-delta="${delta}"]:not(:disabled)`;
+    ((control && $(control)) || (purchase && purchase.querySelector('button:not(:disabled)')) ||
+      $('.quantity button') || $('#main')).focus({preventScroll:true});
+    if (add) inform('added', local(product) + ' — ' + t('added') + '. ' + itemCartQuantity(product));
+    else inform('cartChanged');
   }
   if (button.id === 'admin-logout') {
     button.disabled = true;

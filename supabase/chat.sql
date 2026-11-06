@@ -3,6 +3,7 @@ create table if not exists public.reservations (
   id uuid primary key,
   visitor_hash text not null,
   items jsonb not null,
+  contact jsonb,
   total bigint not null,
   created_at timestamptz not null default now()
 );
@@ -18,4 +19,6 @@ alter table public.reservations enable row level security;
 alter table public.reservation_messages enable row level security;
 revoke all on public.reservations, public.reservation_messages from public, anon, authenticated;
 grant select, insert on public.reservations, public.reservation_messages to service_role;
+alter table public.reservations add column if not exists archived_at timestamptz;
+grant update (archived_at) on public.reservations to service_role;
 commit;
