@@ -29,3 +29,9 @@ All product photos are illustrative. The built-in imagegen tool created the imag
 **Product contact sheet**
 
 > Luxury fine jewelry ecommerce photo contact sheet, 3 columns by 2 rows, six equally sized square photo tiles edge-to-edge, absolutely no gutters, no labels or typography. Each product wholly inside central 65% of its own tile. Warm sunlit ivory / neutral beige stone backgrounds across all tiles, realistic clean studio photography. Row 1 left: sculptural polished yellow gold crossover ring upright. Row 1 middle: two textured small yellow gold hoop earrings. Row 1 right: polished yellow gold oval open bangle. Row 2 left: fine gold chain necklace with circular sunburst pendant. Row 2 middle: coordinated set with gold teardrop earrings and teardrop necklace. Row 2 right: thin yellow gold ring with an oval deep garnet center stone. Exact 3x2 evenly split layout, 3:2 wide canvas.
+
+## Product deletion
+
+Apply `supabase/product-trash.sql` before deploying this version. Admins can delete a product immediately from the catalog and restore it as a draft for 72 hours. A database Cron job runs every minute and permanently removes expired product records. Existing archives are unaffected; reservation snapshots and stored image objects are retained. Local preview removes expired records when the catalog is read.
+
+Run deletion checks with `node --test tests/product-trash.test.mjs`.

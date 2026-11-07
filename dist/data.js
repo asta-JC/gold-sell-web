@@ -12,10 +12,23 @@ function readLocal(key, fallback) {
   try { return JSON.parse(localStorage.getItem(key)) ?? fallback; }
   catch { return fallback; }
 }
+const retentionMs = 72 * 60 * 60 * 1000;
 const localCatalog = {
-  all() { return readLocal('zarrin-catalog-v1', []).filter(product =>
+  all() {
+    const stored = readLocal('zarrin-catalog-v1', []);
+    const retained = stored.filter(product => !product.deleted_at || Date.parse(product.deleted_at) + retentionMs > Date.now());
+    if (retained.length !== stored.length) {
+      try { localStorage.setItem('zarrin-catalog-v1', JSON.stringify(retained)); } catch {}
+    }
+    return retained.filter(product =>
     !sampleIds.has(product.id) && !(product.sku === 'QA-001' && product.uz === 'Sinov uzugi')
   ); },
+  async trash(id, restore = false) {
+    const product = this.all().find(item => item.id === id);
+    if (!product || (restore && !product.deleted_at)) return 'gone';
+    if (!restore && product.deleted_at) return null;
+    return this.save({...product, status:restore ? 'draft' : 'archived', deleted_at:restore ? null : new Date().toISOString()});
+  },
   save(product) {
     const products = this.all();
     if (products.some(item => item.id !== product.id && item.sku.toUpperCase() === product.sku.toUpperCase())) {
@@ -45,6 +58,13 @@ async function catalogRequest(action, body) {
 
 const catalog = localMode ? localCatalog : {
   all() { return remoteProducts; },
+  async trash(id, restore = false) {
+    try {
+      await catalogRequest(restore ? 'restore' : 'trash', {id});
+      remoteProducts = await catalogRequest('staff');
+      return null;
+    } catch (error) { return error.message; }
+  },
   async save(product) {
     try {
       const saved = await catalogRequest('save', {...product, id:product.id === 'new' ? undefined : product.id});

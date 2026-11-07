@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { reservation } from '../lib/reservation.mjs';
 
 const cookieName = 'mg_staff';
-const columns = 'id,sku,category,uz,ru,descUz,descRu,price,purity,weight,size,photo,available,status';
+const columns = 'id,sku,category,uz,ru,descUz,descRu,price,purity,weight,size,photo,available,status,deleted_at';
 const categories = new Set(['rings', 'earrings', 'bracelets', 'necklaces', 'sets']);
 const photoTypes = new Map([['jpeg', 'jpg'], ['png', 'png'], ['webp', 'webp']]);
 
@@ -70,9 +70,21 @@ export default async function handler(req, res) {
       session(auth.access_token, auth.expires_in);
       return res.json({ok:true});
     }
+    if (['trash', 'restore'].includes(action)) {
+      if (!await isStaff(token)) return res.status(401).json({error:'login'});
+      const id = req.body?.id;
+      if (typeof id !== 'string' || !/^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(id)) return res.status(400).json({error:'required'});
+      const result = await request('/rest/v1/rpc/trash_product', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({product_id:id,restore:action === 'restore'})
+      });
+      if (!result.ok) return res.status(502).json({error:'backend'});
+      if (!await result.json()) return res.status(409).json({error:'gone'});
+      return res.json({ok:true});
+    }
     if (action !== 'save' || !await isStaff(token)) return res.status(401).json({error:'login'});
     const {id, photo, photos, ...fields} = req.body ?? {};
-    const product = Object.fromEntries(columns.split(',').filter(key => !['id','photo'].includes(key))
+    const product = Object.fromEntries(columns.split(',').filter(key => !['id','photo','deleted_at'].includes(key))
       .map(key => [key,fields[key]]));
     const updating = typeof id === 'string' && /^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(id);
     if (!categories.has(product.category) || (id && !updating)) return res.status(400).json({error:'required'});
@@ -109,7 +121,7 @@ export default async function handler(req, res) {
       product.photo = entries.map(entry => entry.path).join(',');
     } else if (!updating) return res.status(400).json({error:'badPhoto'});
 
-    const saved = await request('/rest/v1/products' + (updating ? '?id=eq.' + id : ''), {
+    const saved = await request('/rest/v1/products' + (updating ? '?deleted_at=is.null&id=eq.' + id : ''), {
       method:updating ? 'PATCH' : 'POST',
       headers:{'Content-Type':'application/json',Prefer:'return=representation'},
       body:JSON.stringify(product)

@@ -45,6 +45,12 @@ const copy = {
   price:['Narx (so‘m)','Цена (сум)'], weightField:['Vazn (g)','Вес (г)'], photo:['Mahsulot rasmlari','Фото изделия'], removePhoto:['Rasmni olib tashlash','Удалить фото'], photoLimit:['5 tagacha rasm yuklang.','Загрузите до 5 фотографий.'],
   photoHint:['JPG, PNG yoki WebP. 5 tagacha rasm. Birinchi rasm katalogda ko‘rinadi.','JPG, PNG или WebP. До 5 фото. Первое фото отображается в каталоге.'],
   preview:['Oldindan ko‘rish','Предпросмотр'], close:['Yopish','Закрыть'], save:['Saqlash','Сохранить'],
+  trash:['O‘chirish','Удалить'], restore:['Tiklash','Восстановить'],
+  trashConfirm:['Mahsulot katalogdan yashiriladi va 3 kundan keyin butunlay o‘chadi. Davom etasizmi?','Изделие будет скрыто и удалено навсегда через 3 дня. Продолжить?'],
+  trashed:['Mahsulot o‘chirildi. 3 kun ichida tiklash mumkin.','Изделие удалено. Восстановление доступно 3 дня.'],
+  restored:['Mahsulot qoralama sifatida tiklandi.','Изделие восстановлено как черновик.'],
+  trashDeadline:['Butunlay o‘chish vaqti','Будет удалено навсегда'],
+  trashHelp:['3 kun ichida tiklashingiz mumkin.','Можно восстановить в течение 3 дней.'],
   archive:['Arxivlash','Архивировать'], saved:['Mahsulot saqlandi.','Изделие сохранено.'],
   required:['Majburiy maydonlarni to‘g‘ri to‘ldiring.','Заполните обязательные поля корректно.'],
   duplicate:['Bu SKU band. Boshqa kod kiriting.','Этот SKU уже занят. Укажите другой код.'],
@@ -96,9 +102,9 @@ const route = () => {
 };
 function inform(key, detail = '') {
   const notice = $('#notice');
-  notice.dataset.tone = ['storage', 'backend'].includes(key) ? 'error'
+  notice.dataset.tone = ['storage', 'backend', 'gone', 'login'].includes(key) ? 'error'
     : ['cartUnavailable', 'alertsUnavailable'].includes(key) ? 'warning'
-    : ['added', 'cartChanged', 'saved', 'chatDeleted', 'alertsEnabled'].includes(key) ? 'success' : 'info';
+    : ['trashed', 'restored', 'added', 'cartChanged', 'saved', 'chatDeleted', 'alertsEnabled'].includes(key) ? 'success' : 'info';
   notice.textContent = detail || t(key);
   clearTimeout(noticeTimer);
   noticeTimer = setTimeout(() => { $('#notice').textContent = ''; }, 2800);
@@ -347,17 +353,18 @@ function adminPage(id) {
     <div id="admin-list">${adminList()}</div></section>${editor}</div>`);
 }
 function adminList() {
-  const results = catalog.all().filter(product => matches(product,adminSearch));
+  const results = catalog.all().filter(product => matches(product,adminSearch) && (!product.deleted_at || Date.parse(product.deleted_at) + retentionMs > Date.now()));
   return results.map(product => {
     const editLink = '#admin/' + encodeURIComponent(product.id);
     return `<div class="admin-row"><a class="admin-product-link grow" href="${editLink}">
       ${product.photo ? `<img class="admin-product-thumb" loading="lazy" src="${escapeHtml(product.photo)}" alt="">` : ''}
       <span><strong>${escapeHtml(local(product))}</strong>
       <small>${escapeHtml(product.sku)} · ${t(product.status)}</small></span></a>
-      ${btn('edit',editLink,true)}</div>`;
+      ${product.deleted_at ? `<small>${t('trashDeadline')}: ${escapeHtml(new Date(Date.parse(product.deleted_at) + retentionMs).toLocaleString(lang ? 'ru-RU' : 'uz-UZ'))}</small><button class="button secondary" data-restore-product="${product.id}">${t('restore')}</button>` : `${btn('edit',editLink,true)}<button class="text-action error" data-trash-product="${product.id}">${t('trash')}</button>`}</div>`;
   }).join('') || `<p>${t('none')}</p>`;
 }
 function editorForm(p) {
+  if (p.deleted_at) return `<section class="panel stack"><h2>${escapeHtml(local(p))}</h2><p>${t('trashHelp')}</p><p>${t('trashDeadline')}: ${escapeHtml(new Date(Date.parse(p.deleted_at) + retentionMs).toLocaleString(lang ? 'ru-RU' : 'uz-UZ'))}</p><button class="button secondary" data-restore-product="${p.id}">${t('restore')}</button></section>`;
   const input = (name, attrs = '') => `<input name="${name}" value="${escapeHtml(p[name])}" ${attrs}>`;
   const desc = name => `<textarea name="${name}" required maxlength="1500">${escapeHtml(p[name])}</textarea>`;
   return `<section class="panel"><h2>${t(p.id === 'new' ? 'new' : 'edit')}</h2>
@@ -380,6 +387,7 @@ function editorForm(p) {
       <p class="error span" role="alert" id="admin-error">${adminError ? t(adminError) : ''}</p>
       <div class="actions span"><button class="button" data-photo-action ${photoLoading ? 'disabled' : ''}>${t('save')}</button>
       <button class="button secondary" type="button" id="preview-product" data-photo-action ${photoLoading ? 'disabled' : ''}>${t('preview')}</button>
+      ${p.id !== 'new' ? `<button class="text-action error" type="button" data-trash-product="${p.id}" data-photo-action ${photoLoading ? 'disabled' : ''}>${t('trash')}</button>` : ''}
       ${p.id !== 'new' && catalog.all().some(item => item.id === p.id && item.status !== 'archived') ? `<button class="text-action" type="button" id="archive-product" data-photo-action ${photoLoading ? 'disabled' : ''}>${t('archive')}</button>` : ''}</div>
     </form><dialog id="preview-dialog" class="preview-dialog" aria-label="${t('preview')}"></dialog></section>`;
 }
@@ -645,6 +653,18 @@ document.addEventListener('click', async event => {
     } catch { button.disabled = false; inform('backend'); }
   }
   if (button.id === 'preview-product' && !photoLoading) editorAction('preview');
+  if (button.dataset.trashProduct || button.dataset.restoreProduct) {
+    if (saving) return;
+    const restore = !!button.dataset.restoreProduct;
+    if (!restore && !confirm(t('trashConfirm'))) return;
+    saving = true; button.disabled = true;
+    const error = await catalog.trash(button.dataset.restoreProduct || button.dataset.trashProduct, restore);
+    saving = false; button.disabled = false;
+    if (error) { inform(copy[error] ? error : 'backend'); return; }
+    adminEdit = null;
+    render();
+    inform(restore ? 'restored' : 'trashed');
+  }
   if (button.id === 'archive-product' && !photoLoading) editorAction('archive');
 });
 addEventListener('storage', event => {
