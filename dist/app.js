@@ -13,7 +13,7 @@ const copy = {
   skip:['Asosiy mazmunga o‘tish','Перейти к содержанию'], shop:['Katalog','Каталог'],
   cart:['Savat','Корзина'], search:['Qidiruv','Поиск'], admin:['Boshqaruv paneli','Панель управления'],
   label:['OLTIN TAQINCHOQLAR','ЗОЛОТЫЕ УКРАШЕНИЯ'],
-  headline:['Yillar osha go‘zal','Красота на годы'],
+  headline:['Siz eng yaxshisiga loyiqsiz','Вы достойны лучшего'],
   intro:['Har kun va alohida lahzalar uchun oltin taqinchoqlar. O‘zingizga mosini toping.','Золотые украшения для каждого дня и особых моментов. Найдите своё.'],
   heroAlt:['Tosh ustidagi oltin uzuk va sirg‘alar','Золотые кольцо и серьги на камне'],
   explore:['Katalogni ko‘rish','Смотреть каталог'],
@@ -95,7 +95,11 @@ const route = () => {
   return {path, params: new URLSearchParams(query)};
 };
 function inform(key, detail = '') {
-  $('#notice').textContent = detail || t(key);
+  const notice = $('#notice');
+  notice.dataset.tone = ['storage', 'backend'].includes(key) ? 'error'
+    : ['cartUnavailable', 'alertsUnavailable'].includes(key) ? 'warning'
+    : ['added', 'cartChanged', 'saved', 'chatDeleted', 'alertsEnabled'].includes(key) ? 'success' : 'info';
+  notice.textContent = detail || t(key);
   clearTimeout(noticeTimer);
   noticeTimer = setTimeout(() => { $('#notice').textContent = ''; }, 2800);
 }
