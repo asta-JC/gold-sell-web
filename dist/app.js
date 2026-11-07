@@ -40,6 +40,7 @@ const copy = {
   adminNote:['Mahalliy boshqaruv. O‘zgarishlar shu brauzerda saqlanadi.','Локальное управление. Изменения сохраняются в этом браузере.'],
   products:['Mahsulotlar','Изделия'], status:['Holati','Статус'], draft:['Qoralama','Черновик'],
   published:['Katalogda','В каталоге'], archived:['Arxivda','В архиве'],
+  customPurity:['Boshqa — o‘zim kiritaman','Другая — ввести вручную'], purityValue:['Proba qiymati','Значение пробы'],
   autoName:['Avto','Авто'], autoNameHint:['O‘zbekcha nomni kirillga o‘girish','Перевести узбекское название в кириллицу'],
   uzName:['Nomi · O‘zbekcha','Название · узбекский'], ruName:['Nomi · Русский','Название · русский'],
   uzDesc:['Tavsifi · O‘zbekcha (ixtiyoriy)','Описание · узбекский (необязательно)'], ruDesc:['Tavsifi · Русский (ixtiyoriy)','Описание · русский (необязательно)'],
@@ -364,9 +365,11 @@ function adminList() {
       ${product.deleted_at ? `<small>${t('trashDeadline')}: ${escapeHtml(new Date(Date.parse(product.deleted_at) + retentionMs).toLocaleString(lang ? 'ru-RU' : 'uz-UZ'))}</small><button class="button secondary" data-restore-product="${product.id}">${t('restore')}</button>` : `${btn('edit',editLink,true)}<button class="text-action error" data-trash-product="${product.id}">${t('trash')}</button>`}</div>`;
   }).join('') || `<p>${t('none')}</p>`;
 }
+const commonPurities = ['375','500','583','585','750','916','958','999'];
 function editorForm(p) {
   if (p.deleted_at) return `<section class="panel stack"><h2>${escapeHtml(local(p))}</h2><p>${t('trashHelp')}</p><p>${t('trashDeadline')}: ${escapeHtml(new Date(Date.parse(p.deleted_at) + retentionMs).toLocaleString(lang ? 'ru-RU' : 'uz-UZ'))}</p><button class="button secondary" data-restore-product="${p.id}">${t('restore')}</button></section>`;
   const input = (name, attrs = '') => `<input name="${name}" value="${escapeHtml(p[name])}" ${attrs}>`;
+  const purityPreset = p.purityPreset === 'custom' ? 'custom' : commonPurities.includes(String(p.purity)) ? String(p.purity) : 'custom';
   const desc = name => `<textarea name="${name}" maxlength="1500">${escapeHtml(p[name])}</textarea>`;
   return `<section class="panel"><h2>${t(p.id === 'new' ? 'new' : 'edit')}</h2>
     <form id="product-form" class="form-grid" novalidate>
@@ -377,7 +380,8 @@ function editorForm(p) {
       ${field('uzDesc',desc('descUz'),true)}
       ${field('ruDesc',desc('descRu'),true)}
       ${field('price',`<input name="price" type="text" inputmode="numeric" required pattern="[1-9][0-9]{0,2}(,[0-9]{3}){0,2}" value="${formatPriceInput(p.price)}" placeholder="7,534,232">`)}
-      ${field('purity',input('purity','type="number" required min="1" max="999"'))}
+      <div class="stack">${field('purity',`<select name="purityPreset">${commonPurities.map(value => option(value,value,purityPreset)).join('')}${option('custom',t('customPurity'),purityPreset)}</select>`)}
+      <div id="custom-purity" ${purityPreset === 'custom' ? '' : 'hidden'}>${field('purityValue',input('purity',`type="number" inputmode="numeric" required min="1" max="999" step="1" ${purityPreset === 'custom' ? '' : 'disabled'}`))}</div></div>
       ${field('weightField',input('weight','type="number" required min="0.01" step="0.01" max="9999"'))}
       ${field('size',input('size','maxlength="40" placeholder="17 mm"'))}
       ${field('stock',`<select name="available">${option('true',t('available'),String(p.available))}${option('false',t('unavailable'),String(p.available))}</select>`)}
@@ -423,6 +427,7 @@ async function preparePhoto(file) {
 function syncEditor(form) {
   const values = Object.fromEntries(new FormData(form));
   values.price = values.price.replace(/,/g, '');
+  values.purity = values.purityPreset === 'custom' ? form.elements.purity.value : values.purityPreset;
   adminEdit = {...adminEdit, ...values, available:values.available === 'true'};
 }
 function adminMessage(key) {
@@ -534,6 +539,14 @@ document.addEventListener('input', event => {
 
 });
 document.addEventListener('change', async event => {
+  if (event.target.name === 'purityPreset') {
+    const form = event.target.form;
+    const custom = event.target.value === 'custom';
+    form.querySelector('#custom-purity').hidden = !custom;
+    form.elements.purity.disabled = !custom;
+    syncEditor(form);
+    if (custom) form.elements.purity.focus();
+  }
   if (event.target.name === 'pricePreset') {
     updatePriceInput(event.target.form);
     if (event.target.value === 'custom') event.target.form.elements.max.focus();
