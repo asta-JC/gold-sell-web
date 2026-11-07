@@ -35,3 +35,5 @@ All product photos are illustrative. The built-in imagegen tool created the imag
 Apply `supabase/product-trash.sql` before deploying this version. Admins can delete a product immediately from the catalog and restore it as a draft for 72 hours. A database Cron job runs every minute and permanently removes expired product records. Existing archives are unaffected; reservation snapshots and stored image objects are retained. Local preview removes expired records when the catalog is read.
 
 Run deletion checks with `node --test tests/product-trash.test.mjs`.
+
+Product descriptions are optional in both languages (up to 1,500 characters). Apply `supabase/optional-description.sql` when upgrading an existing database.

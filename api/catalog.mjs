@@ -86,6 +86,8 @@ export default async function handler(req, res) {
     const {id, photo, photos, ...fields} = req.body ?? {};
     const product = Object.fromEntries(columns.split(',').filter(key => !['id','photo','deleted_at'].includes(key))
       .map(key => [key,fields[key]]));
+    product.descUz ??= '';
+    product.descRu ??= '';
     const updating = typeof id === 'string' && /^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(id);
     if (!categories.has(product.category) || (id && !updating)) return res.status(400).json({error:'required'});
 

@@ -42,7 +42,7 @@ const copy = {
   published:['Katalogda','В каталоге'], archived:['Arxivda','В архиве'],
   autoName:['Avto','Авто'], autoNameHint:['O‘zbekcha nomni kirillga o‘girish','Перевести узбекское название в кириллицу'],
   uzName:['Nomi · O‘zbekcha','Название · узбекский'], ruName:['Nomi · Русский','Название · русский'],
-  uzDesc:['Tavsifi · O‘zbekcha','Описание · узбекский'], ruDesc:['Tavsifi · Русский','Описание · русский'],
+  uzDesc:['Tavsifi · O‘zbekcha (ixtiyoriy)','Описание · узбекский (необязательно)'], ruDesc:['Tavsifi · Русский (ixtiyoriy)','Описание · русский (необязательно)'],
   price:['Narx (so‘m)','Цена (сум)'], weightField:['Vazn (g)','Вес (г)'], photo:['Mahsulot rasmlari','Фото изделия'], removePhoto:['Rasmni olib tashlash','Удалить фото'], photoLimit:['5 tagacha rasm yuklang.','Загрузите до 5 фотографий.'],
   photoHint:['JPG, PNG yoki WebP. 5 tagacha rasm. Birinchi rasm katalogda ko‘rinadi.','JPG, PNG или WebP. До 5 фото. Первое фото отображается в каталоге.'],
   preview:['Oldindan ko‘rish','Предпросмотр'], close:['Yopish','Закрыть'], save:['Saqlash','Сохранить'],
@@ -367,7 +367,7 @@ function adminList() {
 function editorForm(p) {
   if (p.deleted_at) return `<section class="panel stack"><h2>${escapeHtml(local(p))}</h2><p>${t('trashHelp')}</p><p>${t('trashDeadline')}: ${escapeHtml(new Date(Date.parse(p.deleted_at) + retentionMs).toLocaleString(lang ? 'ru-RU' : 'uz-UZ'))}</p><button class="button secondary" data-restore-product="${p.id}">${t('restore')}</button></section>`;
   const input = (name, attrs = '') => `<input name="${name}" value="${escapeHtml(p[name])}" ${attrs}>`;
-  const desc = name => `<textarea name="${name}" required maxlength="1500">${escapeHtml(p[name])}</textarea>`;
+  const desc = name => `<textarea name="${name}" maxlength="1500">${escapeHtml(p[name])}</textarea>`;
   return `<section class="panel"><h2>${t(p.id === 'new' ? 'new' : 'edit')}</h2>
     <form id="product-form" class="form-grid" novalidate>
       <label class="field"><span>SKU</span>${input('sku','required maxlength="40"')}</label>
@@ -435,7 +435,7 @@ async function editorAction(action) {
   syncEditor(form);
   const product = {...adminEdit};
   for (const key of ['sku','uz','ru','descUz','descRu','size']) product[key] = product[key].trim();
-  if (!form.checkValidity() || !product.photo || !['sku','uz','ru','descUz','descRu'].every(key => product[key])) {
+  if (!form.checkValidity() || !product.photo || !['sku','uz','ru'].every(key => product[key])) {
     adminMessage('required');
     form.querySelector(':invalid')?.focus();
     return;
