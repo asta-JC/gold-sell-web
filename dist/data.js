@@ -74,3 +74,15 @@ const catalog = localMode ? localCatalog : {
     } catch (error) { return error.message; }
   }
 };
+
+// Uzbek Latin → Cyrillic: preserve the name rather than translate its meaning.
+function nameToCyrillic(value) {
+  const letters = {a:'а',b:'б',c:'ц',d:'д',e:'е',f:'ф',g:'г',h:'ҳ',i:'и',j:'ж',k:'к',l:'л',m:'м',n:'н',o:'о',p:'п',q:'қ',r:'р',s:'с',t:'т',u:'у',v:'в',w:'в',x:'х',y:'й',z:'з',sh:'ш',ch:'ч',yo:'ё',yu:'ю',ya:'я',ye:'е'};
+  return value.replace(/o['‘’ʻʼ`ʹ]|g['‘’ʻʼ`ʹ]|sh|ch|yo|yu|ya|ye|[a-z]|['‘’ʻʼ`ʹ]/gi, (part, offset) => {
+    const lower = part.toLowerCase();
+    let result = lower.length === 2 && /['‘’ʻʼ`ʹ]/.test(lower[1])
+      ? (lower[0] === 'o' ? 'ў' : 'ғ') : letters[lower] ?? 'ъ';
+    if (lower === 'e' && (offset === 0 || !/[a-zа-яёўқғҳ]/i.test(value[offset-1]))) result = 'э';
+    return part[0] !== part[0].toLowerCase() ? result.toUpperCase() : result;
+  });
+}

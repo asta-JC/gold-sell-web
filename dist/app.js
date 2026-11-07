@@ -40,6 +40,7 @@ const copy = {
   adminNote:['Mahalliy boshqaruv. O‘zgarishlar shu brauzerda saqlanadi.','Локальное управление. Изменения сохраняются в этом браузере.'],
   products:['Mahsulotlar','Изделия'], status:['Holati','Статус'], draft:['Qoralama','Черновик'],
   published:['Katalogda','В каталоге'], archived:['Arxivda','В архиве'],
+  autoName:['Avto','Авто'], autoNameHint:['O‘zbekcha nomni kirillga o‘girish','Перевести узбекское название в кириллицу'],
   uzName:['Nomi · O‘zbekcha','Название · узбекский'], ruName:['Nomi · Русский','Название · русский'],
   uzDesc:['Tavsifi · O‘zbekcha','Описание · узбекский'], ruDesc:['Tavsifi · Русский','Описание · русский'],
   price:['Narx (so‘m)','Цена (сум)'], weightField:['Vazn (g)','Вес (г)'], photo:['Mahsulot rasmlari','Фото изделия'], removePhoto:['Rasmni olib tashlash','Удалить фото'], photoLimit:['5 tagacha rasm yuklang.','Загрузите до 5 фотографий.'],
@@ -372,7 +373,7 @@ function editorForm(p) {
       <label class="field"><span>SKU</span>${input('sku','required maxlength="40"')}</label>
       ${field('category',`<select name="category">${categoryOptions(p.category,false)}</select>`)}
       ${field('uzName',input('uz','required maxlength="100"'),true)}
-      ${field('ruName',input('ru','required maxlength="100"'),true)}
+      <div class="field span"><div class="field-heading"><label for="product-ru-name">${t('ruName')}</label><button class="auto-name" type="button" id="auto-name" title="${t('autoNameHint')}" aria-label="${t('autoNameHint')}">${t('autoName')}</button></div>${input('ru','id="product-ru-name" required maxlength="100"')}</div>
       ${field('uzDesc',desc('descUz'),true)}
       ${field('ruDesc',desc('descRu'),true)}
       ${field('price',input('price','type="number" required min="1" max="999999999"'))}
@@ -607,6 +608,15 @@ document.addEventListener('click', async event => {
       $('#main').scrollIntoView();
     }
     if (event.target.closest('a[href="#catalog?focus=search"]') && route().params.get('focus') === 'search') $('#catalog-search')?.focus();
+    return;
+  }
+  if (button.id === 'auto-name') {
+    const form = $('#product-form');
+    const source = form.elements.uz;
+    if (!source.value.trim()) { source.focus(); return; }
+    form.elements.ru.value = nameToCyrillic(source.value);
+    syncEditor(form);
+    form.elements.ru.focus();
     return;
   }
   const {language, add, qty, delta, remove} = button.dataset;
