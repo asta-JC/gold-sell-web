@@ -86,3 +86,8 @@ function nameToCyrillic(value) {
     return part[0] !== part[0].toLowerCase() ? result.toUpperCase() : result;
   });
 }
+
+function formatPriceInput(value) {
+  const digits = String(value ?? '').replace(/[^0-9]/g, '').replace(/^0+(?=\d)/, '');
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}

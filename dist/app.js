@@ -376,7 +376,7 @@ function editorForm(p) {
       <div class="field span"><div class="field-heading"><label for="product-ru-name">${t('ruName')}</label><button class="auto-name" type="button" id="auto-name" title="${t('autoNameHint')}" aria-label="${t('autoNameHint')}">${t('autoName')}</button></div>${input('ru','id="product-ru-name" required maxlength="100"')}</div>
       ${field('uzDesc',desc('descUz'),true)}
       ${field('ruDesc',desc('descRu'),true)}
-      ${field('price',input('price','type="number" required min="1" max="999999999"'))}
+      ${field('price',`<input name="price" type="text" inputmode="numeric" required pattern="[1-9][0-9]{0,2}(,[0-9]{3}){0,2}" value="${formatPriceInput(p.price)}" placeholder="7,534,232">`)}
       ${field('purity',input('purity','type="number" required min="1" max="999"'))}
       ${field('weightField',input('weight','type="number" required min="0.01" step="0.01" max="9999"'))}
       ${field('size',input('size','maxlength="40" placeholder="17 mm"'))}
@@ -422,6 +422,7 @@ async function preparePhoto(file) {
 }
 function syncEditor(form) {
   const values = Object.fromEntries(new FormData(form));
+  values.price = values.price.replace(/,/g, '');
   adminEdit = {...adminEdit, ...values, available:values.available === 'true'};
 }
 function adminMessage(key) {
@@ -516,6 +517,18 @@ addEventListener('hashchange', () => {
 });
 document.addEventListener('input', event => {
   const input = event.target;
+  if (input.name === 'price' && input.closest('#product-form')) {
+    const raw = input.value;
+    const caret = input.selectionStart ?? raw.length;
+    const digitsBefore = raw.slice(0, caret).replace(/[^0-9]/g, '').length;
+    input.value = formatPriceInput(raw);
+    let position = 0, digits = 0;
+    while (position < input.value.length && digits < digitsBefore) {
+      if (/[0-9]/.test(input.value[position])) digits++;
+      position++;
+    }
+    input.setSelectionRange(position, position);
+  }
   if (input.id === 'admin-search') { adminSearch = input.value; $('#admin-list').innerHTML = adminList(); }
   if (input.closest('#product-form') && input.id !== 'photo-input') syncEditor(input.form);
 
