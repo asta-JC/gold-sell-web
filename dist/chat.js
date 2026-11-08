@@ -442,7 +442,7 @@ function openContactForm(productId) {
     validateContact();
     if (!form.reportValidity()) return;
     contact.phone = '+998' + phoneNationalDigits(contact.phone);
-    const items = products.map(product => ({id:product.id,qty:basket[product.id]})).filter(item => item.qty > 0);
+    const items = products.map(product => ({id:product.id,qty:basket[product.id] ? 1 : 0})).filter(item => item.qty > 0);
     const errorBox = form.querySelector('.error');
     if (!items.length) { errorBox.textContent = t('emptyCart'); return; }
     errorBox.textContent = '';

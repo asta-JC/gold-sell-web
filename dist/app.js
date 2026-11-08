@@ -31,6 +31,7 @@ const copy = {
   gone:['Bu taqinchoq hozir katalogda yo‘q.','Этого украшения сейчас нет в каталоге.'],
   weight:['Vazni','Вес'], size:['O‘lchami','Размер'], stock:['Mavjudligi','Наличие'],
   available:['Mavjud','В наличии'], unavailable:['Mavjud emas','Нет в наличии'],
+  checkout:['Rasmiylashtirish','Оформить бронь'], continueShopping:['Xaridni davom ettirish','Продолжить покупки'],
   add:['Savatga qo‘shish','В корзину'], added:['Savatga qo‘shildi','Добавлено в корзину'], inCart:['Savatingizda','В вашей корзине'], pieces:['ta','шт.'],
   emptyCart:['Savatingiz bo‘sh.','Ваша корзина пуста.'], total:['Jami','Итого'],
   remove:['Olib tashlash','Удалить'], less:['Miqdorni kamaytirish','Уменьшить количество'],
@@ -64,7 +65,7 @@ const copy = {
 };
 const $ = selector => document.querySelector(selector);
 let lang = readLocal('zarrin-language', 0) === 1 ? 1 : 0;
-let basket = readLocal('zarrin-cart-v1', {});
+let basket = singleItemBasket(readLocal('zarrin-cart-v1', {}));
 let adminEdit = null;
 let saving = false;
 let adminSearch = '';
@@ -119,7 +120,7 @@ function inform(key, detail = '') {
 function setCart(product, amount) {
   const previous = basket;
   basket = {...basket};
-  if (amount > 0) basket[product.id] = Math.min(amount, 99);
+  if (amount > 0) basket[product.id] = 1;
   else delete basket[product.id];
   try { localStorage.setItem('zarrin-cart-v1', JSON.stringify(basket)); }
   catch { basket = previous; inform('storage'); return false; }
@@ -294,24 +295,14 @@ function sizeText(size) {
 }
 const productPhotos = product => product.photos ?? (product.photo ? [product.photo] : []);
 
-function itemCartQuantity(product) {
-  const quantity = basket[product.id] ?? 0;
-  return quantity ? t('inCart') + ' · ' + number(quantity) + ' ' + t('pieces') : '';
-}
-
 function purchaseControls(product) {
   const id = escapeHtml(product.id);
-  const quantity = basket[product.id] ?? 0;
-  if (!product.available || !quantity) {
+  if (!product.available || !basket[product.id]) {
     return `<button type="button" class="button" data-add="${id}" ${product.available ? '' : 'disabled'}>${icon('bag')}${t('add')}</button>`;
   }
-  return `<div class="product-reservation">
-    <div class="quantity"><button type="button" data-qty="${id}" data-delta="-1" aria-label="${t('less')}">−</button>
-      <strong aria-label="${itemCartQuantity(product)}">${quantity}</strong>
-      <button type="button" data-qty="${id}" data-delta="1" aria-label="${t('more')}" ${quantity >= 99 ? 'disabled' : ''}>+</button>
-    </div>
-    ${localMode ? btn('cart','#cart',true) : `<button type="button" class="button" id="start-chat" data-reserve-item="${id}">${t('startChat')}</button>`}
-  </div>`;
+  return `<div class="purchase-next"><span class="cart-added">${icon('bag')}${t('inCart')}</span><div class="actions">
+    ${localMode ? btn('cart','#cart',true) : `<button type="button" class="button" id="start-chat">${t('checkout')}${icon('arrow')}</button>`}
+    ${btn('continueShopping','#catalog',true)}</div></div>`;
 }
 
 function relatedProducts(product) {
@@ -340,20 +331,15 @@ function relatedSection(product) {
 function cartPage() {
   const items = cartItems();
   const existingChat = visitorThread && !localMode ? `<a class="button secondary" href="#chat">${icon('help')}${t('openChat')}</a>` : '';
-  if (!items.length) return page(t('cart'),`<div class="empty"><p>${t('emptyCart')}</p><div class="actions cart-empty-actions">${btn('explore','#catalog')}${existingChat}</div>`);
+  if (!items.length) return page(t('cart'),`<div class="empty"><p>${t('emptyCart')}</p><div class="actions cart-empty-actions">${btn('explore','#catalog')}${existingChat}</div></div>`);
   return page(t('cart'), `
     <div class="cart-layout"><section class="panel">
-      ${items.map(product => {
-        const qty = basket[product.id];
-        return `<div class="cart-row"><img src="${escapeHtml(product.photo)}" alt="">
+      ${items.map(product => `<div class="cart-row"><img src="${escapeHtml(product.photo)}" alt="">
         <div class="grow"><a href="${productLink(product)}"><strong>${escapeHtml(local(product))}</strong></a><br><small>${money(product.price)}</small></div>
-        <div class="quantity">
-          <button data-qty="${product.id}" data-delta="-1" aria-label="${t('less')} · ${escapeHtml(local(product))}">−</button>
-          <span>${qty}</span><button data-qty="${product.id}" data-delta="1" ${qty >= 99 ? 'disabled' : ''} aria-label="${t('more')} · ${escapeHtml(local(product))}">+</button>
-        </div><button class="text-action" data-remove="${product.id}">${t('remove')}</button></div>`;
-      }).join('')}
+        <button class="text-action" data-remove="${product.id}" aria-label="${t('remove')} · ${escapeHtml(local(product))}">${icon('trash')}${t('remove')}</button></div>`).join('')}
+      <div class="cart-continue">${btn('continueShopping','#catalog',true)}</div>
     </section><section class="panel stack"><h2>${t('order')}</h2><strong>${t('total')} · ${money(cartTotal(items))}</strong><p class="muted">${t(localMode ? 'orderNote' : 'chatHelp')}</p>
-    ${localMode ? '' : `<button class="button" id="start-chat">${t('startChat')}</button>${existingChat}`}
+    ${localMode ? '' : `<button class="button" id="start-chat">${t('checkout')}${icon('arrow')}</button>${existingChat}`}
     </section></div>`, '#catalog','shop');
 }
 function adminPage(id) {
@@ -661,7 +647,7 @@ document.addEventListener('click', async event => {
     form.elements.ru.focus();
     return;
   }
-  const {language, add, qty, delta, remove} = button.dataset;
+  const {language, add, remove} = button.dataset;
   if (language !== undefined) {
     if (Number(language) === lang) return;
     const filters = $('#filters') ? [...new FormData($('#filters'))] : [];
@@ -676,20 +662,18 @@ document.addEventListener('click', async event => {
     }
     $('[data-language="' + language + '"]').focus();
   }
-  if (add || qty || remove) {
-    const product = published().find(p => p.id === (add || qty || remove) && p.available);
+  if (add || remove) {
+    const product = published().find(p => p.id === (add || remove) && p.available);
     if (!product) return;
-    const amount = remove ? 0 : (basket[product.id] || 0) + Number(delta ?? 1);
+    const amount = remove ? 0 : 1;
     if (!setCart(product,amount)) return;
     const purchase = $('#product-purchase');
     if (purchase) {
       header();
       updateMarkup(purchase,purchaseControls(product));
     } else render();
-    const control = qty && `[data-qty="${qty}"][data-delta="${delta}"]:not(:disabled)`;
-    ((control && $(control)) || (purchase && purchase.querySelector('button:not(:disabled)')) ||
-      $('.quantity button') || $('#main')).focus({preventScroll:true});
-    if (add) inform('added', local(product) + ' — ' + t('added') + '. ' + itemCartQuantity(product));
+    ((purchase && purchase.querySelector('button:not(:disabled)')) || $('#main')).focus({preventScroll:true});
+    if (add) inform('added', local(product) + ' — ' + t('added'));
     else inform('cartChanged');
   }
   if (button.id === 'admin-logout') {
@@ -720,7 +704,7 @@ document.addEventListener('click', async event => {
   if (button.id === 'archive-product' && !photoLoading) editorAction('archive');
 });
 addEventListener('storage', event => {
-  if (event.key === 'zarrin-cart-v1') basket = readLocal(event.key,{});
+  if (event.key === 'zarrin-cart-v1') basket = singleItemBasket(readLocal(event.key,{}));
   if (catalogState === 'ready' && (event.key === 'zarrin-catalog-v1' || event.key === 'zarrin-cart-v1')) {
     pruneCart();
     if (isAdmin) {

@@ -106,3 +106,7 @@ function formatContactPhone(value) {
   return '(' + d.slice(0,2) + (d.length >= 2 ? ') ' : '') + d.slice(2,5) +
     (d.length > 5 ? '-' + d.slice(5,7) : '') + (d.length > 7 ? '-' + d.slice(7,9) : '');
 }
+
+function singleItemBasket(value) {
+  return Object.fromEntries(Object.entries(value ?? {}).filter(([,qty]) => Number(qty) > 0).map(([id]) => [id,1]));
+}
