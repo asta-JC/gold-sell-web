@@ -33,6 +33,7 @@ const copy = {
   gone:['Bu taqinchoq hozir katalogda yo‘q.','Этого украшения сейчас нет в каталоге.'],
   weight:['Vazni','Вес'], size:['O‘lchami','Размер'], stock:['Mavjudligi','Наличие'],
   available:['Mavjud','В наличии'], unavailable:['Mavjud emas','Нет в наличии'],
+  zoomPhoto:['Rasmni kattalashtirish','Увеличить фото'],
   viewDetails:['Batafsil ko‘rish','Подробнее об изделии'],
   checkout:['Rasmiylashtirish','Оформить бронь'], continueShopping:['Xaridni davom ettirish','Продолжить покупки'],
   add:['Savatga qo‘shish','В корзину'], added:['Savatga qo‘shildi','Добавлено в корзину'], inCart:['Savatingizda','В вашей корзине'], pieces:['ta','шт.'],
@@ -317,7 +318,7 @@ function detail(product, preview = false) {
     ['size',sizeText(product.size),'ruler'],['stock',t(product.available ? 'available' : 'unavailable'),'box'],['SKU',product.sku,'tag']];
   const description = lang ? product.descRu : product.descUz;
   return `<article class="product-detail">
-    <div class="product-gallery"><img class="gallery-main" src="${escapeHtml(photos[0])}" alt="${escapeHtml(local(product))}">
+    <div class="product-gallery"><button type="button" class="gallery-zoom" aria-label="${t('zoomPhoto')}"><img class="gallery-main" src="${escapeHtml(photos[0])}" alt="${escapeHtml(local(product))}"><span class="gallery-zoom-hint">${icon('search')}<span>${t('zoomPhoto')}</span></span></button>
       ${photos.length > 1 ? `<div class="photo-list">${photos.map((photo,index) =>
         `<button type="button" data-gallery-photo="${escapeHtml(photo)}" aria-label="${t('photo')} ${index+1}" aria-pressed="${index === 0}"><img src="${escapeHtml(photo)}" alt=""></button>`).join('')}</div>` : ''}</div>
     <div class="product-info"><span class="eyebrow">${categoryName(product.category)}</span><${preview ? 'h2' : 'h1'}>${escapeHtml(local(product))}</${preview ? 'h2' : 'h1'}>
@@ -619,6 +620,7 @@ document.addEventListener('submit', async event => {
 });
 document.addEventListener('click', async event => {
   const button = event.target.closest('button');
+  if (button?.classList.contains('gallery-zoom')) { openProductZoom(button); return; }
   if (button?.dataset.galleryPhoto) {
     const gallery = button.closest('.product-gallery');
     gallery.querySelector('.gallery-main').src = button.dataset.galleryPhoto;
