@@ -91,3 +91,18 @@ function formatPriceInput(value) {
   const digits = String(value ?? '').replace(/[^0-9]/g, '').replace(/^0+(?=\d)/, '');
   return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
+
+function contactNameValid(value) {
+  return /^[\p{L}\p{M}]+(?:[ '‘’ʻʼ`-][\p{L}\p{M}]+)*$/u.test(value.trim()) && value.trim().length <= 60;
+}
+function phoneNationalDigits(value) {
+  let digits = String(value ?? '').replace(/[^0-9]/g, '');
+  if (digits.length > 9 && digits.startsWith('998')) digits = digits.slice(3);
+  return digits.slice(0,9);
+}
+function formatContactPhone(value) {
+  const d = phoneNationalDigits(value);
+  if (!d) return '';
+  return '(' + d.slice(0,2) + (d.length >= 2 ? ') ' : '') + d.slice(2,5) +
+    (d.length > 5 ? '-' + d.slice(5,7) : '') + (d.length > 7 ? '-' + d.slice(7,9) : '');
+}

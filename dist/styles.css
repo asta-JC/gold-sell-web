@@ -89,3 +89,5 @@ a.customer-phone{text-decoration:underline;text-underline-offset:3px}
 .field-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px}.field-heading label{font-size:.89rem;font-weight:640}.auto-name{min-height:44px;padding:6px 16px;border:1px solid #d9bd7e;border-radius:8px;background:#f8efdc;color:#644713;font-weight:600}.auto-name:hover{background:#efe0bc}
 
 @media(max-width:900px){.header-chat .unread-badge:not([hidden]){display:inline-grid}}
+
+.phone-control{display:flex;align-items:center;min-width:0;background:var(--paper);border:1px solid #aa9ba0}.phone-control:focus-within{outline:3px solid #9a631b;outline-offset:4px}.phone-control .phone-prefix{flex:none;padding:0 14px;color:var(--plum);font-weight:650;border-right:1px solid var(--line)}.field .phone-control input{border:0;min-width:0;letter-spacing:.06em;font-variant-numeric:tabular-nums}.phone-control input:focus-visible{outline:none}

@@ -40,6 +40,7 @@ const copy = {
   adminNote:['Mahalliy boshqaruv. O‘zgarishlar shu brauzerda saqlanadi.','Локальное управление. Изменения сохраняются в этом браузере.'],
   products:['Mahsulotlar','Изделия'], status:['Holati','Статус'], draft:['Qoralama','Черновик'],
   published:['Katalogda','В каталоге'], archived:['Arxivda','В архиве'],
+  related:['Sizga yoqishi mumkin','Вам также может понравиться'],
   customPurity:['Boshqa — o‘zim kiritaman','Другая — ввести вручную'], purityValue:['Proba qiymati','Значение пробы'],
   autoName:['Avto','Авто'], autoNameHint:['O‘zbekcha nomni kirillga o‘girish','Перевести узбекское название в кириллицу'],
   uzName:['Nomi · O‘zbekcha','Название · узбекский'], ruName:['Nomi · Русский','Название · русский'],
@@ -264,7 +265,7 @@ function shop(params) {
   const preset = max && !priceLimits.includes(max) ? 'custom' : max;
   const results = published().filter(p => (!category || category === p.category) &&
     (!purity || purity === p.purity) && (!max || p.price <= Number(max)) && matches(p,query));
-  const purityOptions = [...new Set(published().map(p => p.purity))].sort();
+  const purityOptions = [...new Set([...commonPurities, ...published().map(p => p.purity)])].sort((a,b) => Number(a) - Number(b));
   return page(category && categories[category] ? categoryName(category) : t('shop'), `
     <form id="filters" class="filters" aria-label="${t('shop')}">
       ${field('search',`<input id="catalog-search" name="q" type="search" value="${escapeHtml(query)}">`)}
@@ -307,6 +308,9 @@ function purchaseControls(product) {
   </div>`;
 }
 
+function relatedProducts(product) {
+  return published().filter(item => item.id !== product.id && item.category === product.category).reverse().slice(0,3);
+}
 function detail(product, preview = false) {
   const photos = productPhotos(product);
   const specs = [['purity',product.purity],['weight',number(product.weight) + (lang ? ' г' : ' g')],
@@ -319,7 +323,12 @@ function detail(product, preview = false) {
       <p class="price">${money(product.price)}</p><p>${escapeHtml(lang ? product.descRu : product.descUz)}</p>
       <dl class="specs">${specs.map(([label,value]) => `<div><dt>${copy[label] ? t(label) : label}</dt><dd>${escapeHtml(value)}</dd></div>`).join('')}</dl>
       ${preview ? '' : `<div id="product-purchase">${purchaseControls(product)}</div>`}
-    </div></article>`;
+    </div></article>${preview ? '' : relatedSection(product)}`;
+}
+function relatedSection(product) {
+  const related = relatedProducts(product);
+  if (!related.length) return '';
+  return `<section class="section" aria-labelledby="related-title"><div class="section-title"><div><span class="eyebrow">${categoryName(product.category)}</span><h2 id="related-title">${t('related')}</h2></div>${btn('all','#catalog?category=' + encodeURIComponent(product.category),true)}</div><div class="product-grid">${related.map(card).join('')}</div></section>`;
 }
 function cartPage() {
   const items = cartItems();

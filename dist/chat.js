@@ -391,9 +391,9 @@ function openContactForm(productId) {
   dialog.innerHTML = `<form class="panel stack">
     <h2 id="reservation-contact-title">${t('order')}</h2>
     <p>${t('contactHelp')}</p>
-    ${field('contactFirst',`<input name="firstName" required maxlength="60" autocomplete="given-name" value="${escapeHtml(savedContact?.firstName)}">`)}
-    ${field('contactLast',`<input name="lastName" required maxlength="60" autocomplete="family-name" value="${escapeHtml(savedContact?.lastName)}">`)}
-    ${field('contactPhone',`<input name="phone" type="tel" required maxlength="24" autocomplete="tel" placeholder="+998" value="${escapeHtml(savedContact?.phone)}">`)}
+    ${field('contactFirst',`<input name="firstName" required maxlength="60" autocomplete="given-name" placeholder="${lang ? 'Азизбек' : 'Azizbek'}" value="${escapeHtml(savedContact?.firstName)}">`)}
+    ${field('contactLast',`<input name="lastName" required maxlength="60" autocomplete="family-name" placeholder="${lang ? 'Каримов' : 'Karimov'}" value="${escapeHtml(savedContact?.lastName)}">`)}
+    <div class="field"><label for="reservation-phone">${t('contactPhone')}</label><div class="phone-control"><span class="phone-prefix">+998</span><input id="reservation-phone" name="phone" type="tel" inputmode="numeric" required autocomplete="tel-national" placeholder="(90) 123-45-67" aria-label="${t('contactPhone')} +998" value="${formatContactPhone(savedContact?.phone)}"></div></div>
     <label><input name="remember" type="checkbox" checked> ${t('contactRemember')}</label>
     <p class="error" role="alert"></p>
     <div class="actions"><button class="button">${t('startChat')}</button>
@@ -402,6 +402,36 @@ function openContactForm(productId) {
   document.body.append(dialog);
   const form = dialog.querySelector('form');
   const cancel = form.querySelector('[type="button"]');
+  const validateContact = () => {
+    for (const name of ['firstName','lastName']) {
+      const input = form.elements[name];
+      input.setCustomValidity(contactNameValid(input.value) ? '' : t('invalidContact'));
+    }
+    form.elements.phone.setCustomValidity(phoneNationalDigits(form.elements.phone.value).length === 9 ? '' : t('invalidContact'));
+  };
+  form.addEventListener('input', event => {
+    const input = event.target;
+    if (['firstName','lastName'].includes(input.name)) {
+      const position = input.selectionStart;
+      const before = input.value.slice(0, position).replace(/[^\p{L}\p{M} '‘’ʻʼ`-]/gu, '');
+      input.value = input.value.replace(/[^\p{L}\p{M} '‘’ʻʼ`-]/gu, '');
+      input.setSelectionRange(before.length, before.length);
+    }
+    if (input.name === 'phone') {
+      const raw = input.value;
+      const position = input.selectionStart ?? raw.length;
+      const count = phoneNationalDigits(raw.slice(0, position)).length;
+      input.value = formatContactPhone(raw);
+      let caret = 0, digits = 0;
+      while (caret < input.value.length && digits < count) {
+        if (/[0-9]/.test(input.value[caret])) digits++;
+        caret++;
+      }
+      input.setSelectionRange(caret,caret);
+    }
+    validateContact();
+  });
+  validateContact();
   cancel.addEventListener('click',() => dialog.close());
   dialog.addEventListener('cancel',event => { if (startingChat) event.preventDefault(); });
   dialog.addEventListener('close',() => dialog.remove(),{once:true});
@@ -409,6 +439,9 @@ function openContactForm(productId) {
     event.preventDefault();
     if (startingChat) return;
     const contact = Object.fromEntries(['firstName','lastName','phone'].map(key => [key,form.elements[key].value.trim()]));
+    validateContact();
+    if (!form.reportValidity()) return;
+    contact.phone = '+998' + phoneNationalDigits(contact.phone);
     const items = products.map(product => ({id:product.id,qty:basket[product.id]})).filter(item => item.qty > 0);
     const errorBox = form.querySelector('.error');
     if (!items.length) { errorBox.textContent = t('emptyCart'); return; }
