@@ -21,6 +21,8 @@ const copy = {
   contact:['Aloqa va maslahat','Контакты и консультация'], collect:['Kolleksiyalar','Коллекции'],
   choose:['Turini tanlang','Выберите категорию'], featured:['Tanlangan taqinchoqlar','Избранные украшения'],
   all:['Barchasi','Все'], info:['Xaridor uchun ma’lumot','Информация для покупателей'],
+  photoDisclosure:['Mahsulot rasmlari haqida','О фотографиях изделий'],
+  photoDisclosureText:['Mahsulot rasmlari sun’iy intellekt (AI) yordamida tahrirlangan. Shu sababli rang, yorug‘lik va ayrim detallar mahsulotning haqiqiy ko‘rinishidan farq qilishi mumkin. Xarid qilishdan oldin asl surat yoki videoni so‘rab, mahsulot tafsilotlarini do‘kon bilan aniqlashtiring.','Фотографии изделий обработаны с помощью искусственного интеллекта (ИИ). Цвет, освещение и отдельные детали могут отличаться от реального изделия. Перед покупкой запросите оригинальное фото или видео и уточните детали у магазина.'],
   assayText:['Oltin probasi va vaznini mahsulot sahifasidan ko‘ring.','Проба и вес указаны на странице изделия.'],
   pickupText:['Katalogda narxlarni ko‘ring. Tanlagan taqinchog‘ingizni bron qilib, do‘kondan olib ketasiz.','Посмотрите цены в каталоге. Выбранное украшение можно забронировать и забрать в магазине.'],
   contactText:['Savollaringiz bo‘lsa, Telegram orqali yozing.','Если у вас есть вопросы, напишите нам в Telegram.'],
@@ -212,7 +214,7 @@ function card(product) {
     </div></a>`;
 }
 function infoContent() {
-  return `<div class="info-grid">${[['assay','assayText'],['pickup','pickupText'],['contact','contactText']].map(([title, body]) =>
+  return `<div class="info-grid">${[['assay','assayText'],['pickup','pickupText'],['contact','contactText'],['photoDisclosure','photoDisclosureText']].map(([title, body]) =>
     `<article><h3>${t(title)}</h3><p>${t(body)}</p>${title === 'contact' ? `<a class="text-action" href="${telegramContact}">Telegram · @asta_cc ↗</a>` : ''}</article>`).join('')}</div>`;
 }
 function home() {
