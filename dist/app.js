@@ -40,6 +40,7 @@ const copy = {
   adminNote:['Mahalliy boshqaruv. O‘zgarishlar shu brauzerda saqlanadi.','Локальное управление. Изменения сохраняются в этом браузере.'],
   products:['Mahsulotlar','Изделия'], status:['Holati','Статус'], draft:['Qoralama','Черновик'],
   published:['Katalogda','В каталоге'], archived:['Arxivda','В архиве'],
+  pickupDetail:['Do‘kondan olib ketish','Самовывоз из магазина'], pickupHint:['Olib ketish vaqtini bron chatida kelishamiz.','Время самовывоза согласуем в чате брони.'],
   related:['Sizga yoqishi mumkin','Вам также может понравиться'],
   customPurity:['Boshqa — o‘zim kiritaman','Другая — ввести вручную'], purityValue:['Proba qiymati','Значение пробы'],
   autoName:['Avto','Авто'], autoNameHint:['O‘zbekcha nomni kirillga o‘girish','Перевести узбекское название в кириллицу'],
@@ -85,6 +86,9 @@ const iconPaths = {
   search:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>',
   bag:'<path d="M5 8h14l2 13H3zM8 9V6a4 4 0 0 1 8 0v3"/>',
   arrow:'<path d="M3 12h17m-6-6 6 6-6 6"/>',
+  weight:'<path d="M7 8h10l3 13H4L7 8Z"/><circle cx="12" cy="5" r="3"/>',
+  ruler:'<path d="m3 16 13-13 5 5L8 21zM13 6l2 2m-5 1 2 2m-5 1 2 2m-5 1 2 2"/>',
+  tag:'<path d="M3 3h8l10 10-8 8L3 11z"/><circle cx="7.5" cy="7.5" r="1"/>',
   gem:'<path d="m12 2 9 9-9 11-9-11zM3 11h18m-9-9-4 9 4 11 4-11z"/>',
   box:'<path d="M4 7l8-4 8 4v11l-8 4-8-4zm0 0 8 4 8-4m-8 4v11"/>',
   send:'<path d="m22 2-7 20-4-9-9-4zM22 2 11 13"/>',
@@ -315,16 +319,17 @@ function relatedProducts(product) {
 }
 function detail(product, preview = false) {
   const photos = productPhotos(product);
-  const specs = [['purity',product.purity],['weight',number(product.weight) + (lang ? ' г' : ' g')],
-    ['size',sizeText(product.size)],['stock',t(product.available ? 'available' : 'unavailable')],['SKU',product.sku]];
+  const specs = [['purity',product.purity,'gem'],['weight',number(product.weight) + (lang ? ' г' : ' g'),'weight'],
+    ['size',sizeText(product.size),'ruler'],['stock',t(product.available ? 'available' : 'unavailable'),'box'],['SKU',product.sku,'tag']];
+  const description = lang ? product.descRu : product.descUz;
   return `<article class="product-detail">
     <div class="product-gallery"><img class="gallery-main" src="${escapeHtml(photos[0])}" alt="${escapeHtml(local(product))}">
       ${photos.length > 1 ? `<div class="photo-list">${photos.map((photo,index) =>
         `<button type="button" data-gallery-photo="${escapeHtml(photo)}" aria-label="${t('photo')} ${index+1}" aria-pressed="${index === 0}"><img src="${escapeHtml(photo)}" alt=""></button>`).join('')}</div>` : ''}</div>
-    <div><span class="eyebrow">${categoryName(product.category)}</span><${preview ? 'h2' : 'h1'}>${escapeHtml(local(product))}</${preview ? 'h2' : 'h1'}>
-      <p class="price">${money(product.price)}</p><p>${escapeHtml(lang ? product.descRu : product.descUz)}</p>
-      <dl class="specs">${specs.map(([label,value]) => `<div><dt>${copy[label] ? t(label) : label}</dt><dd>${escapeHtml(value)}</dd></div>`).join('')}</dl>
-      ${preview ? '' : `<div id="product-purchase">${purchaseControls(product)}</div>`}
+    <div class="product-info"><span class="eyebrow">${categoryName(product.category)}</span><${preview ? 'h2' : 'h1'}>${escapeHtml(local(product))}</${preview ? 'h2' : 'h1'}>
+      <div class="product-price"><span class="muted">${t('price')}</span><p class="price">${money(product.price)}</p></div>${description ? `<p class="product-description">${escapeHtml(description)}</p>` : ''}
+      <dl class="specs product-specs">${specs.map(([label,value,symbol]) => `<div><dt><span class="spec-icon">${icon(symbol)}</span>${copy[label] ? t(label) : label}</dt><dd>${label === 'stock' ? `<span class="detail-stock ${product.available ? 'is-available' : ''}">${escapeHtml(value)}</span>` : escapeHtml(value)}</dd></div>`).join('')}</dl>
+      ${preview ? '' : `<div id="product-purchase">${purchaseControls(product)}</div><div class="product-pickup">${icon('box')}<div><strong>${t('pickupDetail')}</strong><p>${t('pickupHint')}</p></div></div>`}
     </div></article>${preview ? '' : relatedSection(product)}`;
 }
 function relatedSection(product) {
