@@ -200,9 +200,11 @@ function header(preserve = false) {
 }
 function card(product) {
   return `<a class="card" href="${productLink(product)}">
-    <img loading="lazy" src="${escapeHtml(product.photo)}" alt="">
-    <div class="card-copy"><small>${product.purity} · ${categoryName(product.category)}</small><h3>${escapeHtml(local(product))}</h3>
-    <span class="price">${money(product.price)}</span></div></a>`;
+    <div class="card-visual"><img loading="lazy" src="${escapeHtml(product.photo)}" alt="">
+      <span class="card-purity" aria-label="${t('purity')} ${escapeHtml(product.purity)}">${icon('gem')}${escapeHtml(product.purity)}</span></div>
+    <div class="card-copy"><div class="card-meta"><small>${categoryName(product.category)}</small><span class="card-stock ${product.available ? 'is-available' : ''}">${t(product.available ? 'available' : 'unavailable')}</span></div>
+      <h3>${escapeHtml(local(product))}</h3><div class="card-bottom"><span class="price">${money(product.price)}</span><span class="card-open" aria-hidden="true">${icon('arrow')}</span></div>
+    </div></a>`;
 }
 function infoContent() {
   return `<div class="info-grid">${[['assay','assayText'],['pickup','pickupText'],['contact','contactText']].map(([title, body]) =>
