@@ -35,6 +35,7 @@ const copy = {
   available:['Mavjud','В наличии'], unavailable:['Mavjud emas','Нет в наличии'],
   zoomPhoto:['Rasmni kattalashtirish','Увеличить фото'],
   viewDetails:['Batafsil ko‘rish','Подробнее об изделии'],
+  removeFromCart:['Savatdan olib tashlash','Убрать из корзины'],
   checkout:['Rasmiylashtirish','Оформить бронь'], continueShopping:['Xaridni davom ettirish','Продолжить покупки'],
   add:['Savatga qo‘shish','В корзину'], added:['Savatga qo‘shildi','Добавлено в корзину'], inCart:['Savatingizda','В вашей корзине'], pieces:['ta','шт.'],
   emptyCart:['Savatingiz bo‘sh.','Ваша корзина пуста.'], total:['Jami','Итого'],
@@ -129,6 +130,15 @@ function setCart(product, amount) {
   try { localStorage.setItem('zarrin-cart-v1', JSON.stringify(basket)); }
   catch { basket = previous; inform('storage'); return false; }
   return true;
+}
+function clearReservedCart(items) {
+  // A confirmed reservation must leave the cart even if browser storage is full.
+  const remaining = {...basket};
+  for (const item of items) delete remaining[item.id];
+  basket = remaining;
+  try { localStorage.setItem('zarrin-cart-v1', JSON.stringify(basket)); }
+  catch { inform('storage'); }
+  header();
 }
 // Keep existing elements mounted when only the locale changes.
 function updateMarkup(target, markup, preserveChat = false) {
@@ -306,7 +316,7 @@ function purchaseControls(product) {
   }
   return `<div class="purchase-next"><span class="cart-added">${icon('bag')}${t('inCart')}</span><div class="actions">
     ${localMode ? btn('cart','#cart',true) : `<button type="button" class="button" id="start-chat">${t('checkout')}${icon('arrow')}</button>`}
-    ${btn('continueShopping','#catalog',true)}</div></div>`;
+    ${btn('continueShopping','#catalog',true)}</div><button type="button" class="text-action product-remove-cart" data-remove="${id}">${icon('trash')}${t('removeFromCart')}</button></div>`;
 }
 
 function relatedProducts(product) {

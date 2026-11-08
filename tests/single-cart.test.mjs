@@ -30,3 +30,13 @@ test('new reservation requests cannot order more than one of the same piece',asy
     assert.equal(res.code,400);assert.equal(calls,1);
   }finally{globalThis.fetch=originalFetch;}
 });
+
+test('confirmed reservation clears submitted products, retains other selections and refreshes header',()=>{
+  let saved,headers=0;
+  const context=vm.createContext({localStorage:{setItem(_key,value){saved=JSON.parse(value);}},inform(){},header(){headers++;}});
+  const source=readFileSync(new URL('../dist/app.js',import.meta.url),'utf8');
+  vm.runInContext("let basket={ring:1,earrings:1};"+source.slice(source.indexOf('function clearReservedCart('),source.indexOf('// Keep existing elements'))+';globalThis.read=()=>basket;',context);
+  context.clearReservedCart([{id:'ring'}]);
+  assert.deepEqual(saved,{earrings:1});assert.equal(context.read().ring,undefined);assert.equal(headers,1);
+  context.clearReservedCart([{id:'ring'}]);assert.deepEqual(saved,{earrings:1});
+});

@@ -471,7 +471,7 @@ function openContactForm(productId) {
       visitorThread = {id,secret,items:products.map(({uz,ru}) => ({uz,ru})),created_at:new Date().toISOString()};
       visitorThreads = [visitorThread,...visitorThreads.filter(thread => thread.id !== id)];
       try { localStorage.setItem('mg-visitor-threads',JSON.stringify(visitorThreads)); } catch {}
-      for (const item of items) setCart(item, (basket[item.id] ?? 0) - item.qty);
+      clearReservedCart(items);
       startAttempt = null;
       dialog.close();
       location.hash = 'chat';
