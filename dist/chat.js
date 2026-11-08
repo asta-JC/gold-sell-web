@@ -37,6 +37,9 @@ const chatCopy = {
   noMessages:['Hali xabar yozilmagan.','Сообщений пока нет.'],
   chatHistory:['Bron suhbatlari','Чаты бронирования'],
   reservationItems:['Bron qilingan mahsulotlar','Товары в запросе'],
+  itemCode:['Mahsulot kodi','Код изделия'], itemCodeHint:['Do‘konda shu kod orqali topiladi','По этому коду магазин найдёт изделие'],
+  itemSizeHint:['Taqinchoq o‘lchami','Размер изделия'], itemWeightHint:['Taqinchoq og‘irligi','Вес изделия'],
+  itemPurityHint:['oltin tarkibi','содержание золота'], itemPrice:['Mahsulot narxi','Стоимость изделия'],
   itemQty:['Soni','Количество'],
   chooseChat:['Suhbatni tanlang.','Выберите чат.']
 };
@@ -163,19 +166,21 @@ function chatPage() {
 function chatItems(thread) {
   return thread.items.map(item => {
     const description = lang ? item.descRu : item.descUz;
+    const purity = Number(item.purity);
     const specs = [
-      item.size && t('size') + ' · ' + sizeText(item.size),
-      item.purity && t('purity') + ' · ' + item.purity,
-      item.weight && t('weight') + ' · ' + number(item.weight) + (lang ? ' г' : ' g')
+      item.purity && ['gem', t('purity'), String(item.purity), Number.isFinite(purity) && purity > 0 && purity <= 999 ? number(purity / 10) + '% · ' + t('itemPurityHint') : ''],
+      item.weight && ['weight', t('weight'), number(item.weight) + (lang ? ' г' : ' g'), t('itemWeightHint')],
+      item.size && ['ruler', t('size'), sizeText(item.size), t('itemSizeHint')]
     ].filter(Boolean);
     return `<li class="chat-product">
-      ${item.photo ? `<img src="${escapeHtml(item.photo)}" alt="${escapeHtml(local(item))}">` : ''}
-      <div><strong>${escapeHtml(local(item))}</strong>
-        <p>SKU · ${escapeHtml(item.sku)}</p>
-        ${specs.length ? `<p>${specs.map(escapeHtml).join(' · ')}</p>` : ''}
-        ${description ? `<p>${escapeHtml(description)}</p>` : ''}
-        <p>${t('itemQty')} · ${item.qty} &nbsp; | &nbsp; ${money(item.price)} × ${item.qty} = <strong>${money(item.price * item.qty)}</strong></p>
-      </div></li>`;
+      <div class="chat-item-heading">${item.photo ? `<img src="${escapeHtml(item.photo)}" alt="${escapeHtml(local(item))}">` : ''}
+        <div><strong class="chat-item-name">${escapeHtml(local(item))}</strong>
+          ${item.sku ? `<p class="chat-item-code">${icon('tag')}<span>${t('itemCode')}: <strong>${escapeHtml(item.sku)}</strong></span></p><small class="muted">${t('itemCodeHint')}</small>` : ''}
+        </div></div>
+      ${specs.length ? `<dl class="chat-item-specs">${specs.map(([symbol,label,value,hint]) => `<div><dt>${icon(symbol)}${label}</dt><dd>${escapeHtml(value)}</dd>${hint ? `<small>${escapeHtml(hint)}</small>` : ''}</div>`).join('')}</dl>` : ''}
+      ${description ? `<p class="chat-item-description">${escapeHtml(description)}</p>` : ''}
+      <div class="chat-item-price"><span>${t('itemPrice')}${item.qty > 1 ? `<small>${t('itemQty')}: ${item.qty} · ${money(item.price)} / ${t('pieces')}</small>` : ''}</span><strong>${money(item.price * item.qty)}</strong></div>
+    </li>`;
   }).join('');
 }
 
