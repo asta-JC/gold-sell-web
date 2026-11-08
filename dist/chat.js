@@ -59,6 +59,53 @@ const readChatKey = 'mg-staff-read-chat';
 let readChats = readLocal(readChatKey,{});
 let unreadChats = new Set();
 
+const visitorReadKey = 'mg-visitor-read-chat';
+let visitorReadTimes = readLocal(visitorReadKey,{});
+const visitorLatestTimes = new Map();
+let visitorUnreadChats = new Set();
+
+function updateVisitorUnread() {
+  visitorUnreadChats = new Set(visitorThreads.filter(thread =>
+    (visitorLatestTimes.get(thread.id) ?? 0) > (visitorReadTimes[thread.id] ?? 0)
+  ).map(thread => thread.id));
+  const badge = $('#visitor-chat-badge');
+  if (badge) {
+    badge.textContent = visitorUnreadChats.size;
+    badge.hidden = !visitorUnreadChats.size;
+  }
+}
+
+function markVisitorChatRead(thread, messages) {
+  const latest = Math.max(0, ...messages.filter(message => message.sender === 'staff')
+    .map(message => Date.parse(message.created_at)));
+  visitorLatestTimes.set(thread.id, Math.max(visitorLatestTimes.get(thread.id) ?? 0, latest));
+  if (latest > (visitorReadTimes[thread.id] ?? 0)) {
+    visitorReadTimes[thread.id] = latest;
+    try { localStorage.setItem(visitorReadKey,JSON.stringify(visitorReadTimes)); } catch {}
+  }
+  updateVisitorUnread();
+}
+
+async function refreshVisitorUnread() {
+  await Promise.allSettled(visitorThreads.map(async access => {
+    const result = await catalogRequest('chat-unread', {id:access.id,secret:access.secret});
+    visitorLatestTimes.set(access.id, result.latest ? Date.parse(result.latest) : 0);
+  }));
+  updateVisitorUnread();
+}
+
+addEventListener('storage', event => {
+  if (isAdmin) return;
+  if (event.key === visitorReadKey) visitorReadTimes = readLocal(visitorReadKey,{});
+  else if (event.key === 'mg-visitor-threads') visitorThreads = readLocal('mg-visitor-threads',[]);
+  else return;
+  updateVisitorUnread();
+  refreshChat();
+});
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) refreshChat();
+});
+
 function updateUnreadChats() {
   if (!inbox) return;
   const latest = new Map(inbox.threads.map(thread => [thread.id,Date.parse(thread.created_at)]));
@@ -143,7 +190,7 @@ function showChatList(threads, selected) {
       ? new Intl.DateTimeFormat(lang ? 'ru-RU' : 'uz-Latn-UZ', {dateStyle:'short',timeStyle:'short'}).format(new Date(thread.created_at))
       : '';
     return `<button type="button" class="chat-choice" data-thread="${escapeHtml(thread.id)}" aria-pressed="${thread.id === selected}">
-      <strong class="chat-icon-heading">${icon('help')}${escapeHtml(title)}</strong><span>#${escapeHtml(thread.id.slice(0,8))}${date ? ' · ' + escapeHtml(date) : ''}</span>${isAdmin && unreadChats.has(thread.id) ? `<span class="unread-badge" aria-label="${t('unreadChat')}">1</span>` : ''}
+      <strong class="chat-icon-heading">${icon('help')}${escapeHtml(title)}</strong><span>#${escapeHtml(thread.id.slice(0,8))}${date ? ' · ' + escapeHtml(date) : ''}</span>${(isAdmin ? unreadChats : visitorUnreadChats).has(thread.id) ? `<span class="unread-badge" aria-label="${t('unreadChat')}">1</span>` : ''}
     </button>`;
   }).join('') || (isAdmin ? `<p>${t('emptyChat')}</p>` : visitorChatEmpty()));
 }
@@ -193,7 +240,7 @@ function chatError(key) {
 }
 
 async function refreshChat() {
-  if (localMode || catalogState !== 'ready' || (!isAdmin && !$('#chat-thread'))) return;
+  if (localMode || catalogState !== 'ready' || (!isAdmin && !visitorThreads.length)) return;
   if (chatBusy) { chatRefreshQueued = true; return; }
   chatBusy = true;
   try {
@@ -218,6 +265,7 @@ async function refreshChat() {
       updateUnreadChats();
     }
 
+    if (!isAdmin) await refreshVisitorUnread();
     const id = isAdmin ? currentStaffThread : visitorThread?.id;
     showChatList(isAdmin ? inbox.threads : visitorThreads, id);
     if (!$('#chat-thread')) return;
@@ -249,6 +297,10 @@ async function refreshChat() {
     if (followMessages) messageList.scrollTop = messageList.scrollHeight;
     $('#chat-message').hidden = Boolean(thread.archived_at);
     if (isAdmin) $('#delete-chat').hidden = Boolean(thread.archived_at);
+    if (!isAdmin && !document.hidden) {
+      markVisitorChatRead(thread,messages);
+      showChatList(visitorThreads,id);
+    }
     if (isAdmin && !document.hidden) {
       markChatRead(thread,messages);
       showChatList(inbox.threads,id);

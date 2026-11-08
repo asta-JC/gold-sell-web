@@ -177,7 +177,7 @@ function header(preserve = false) {
       <a class="wordmark" href="${storefront}#home" aria-label="M Gold · ${t('home')}"><img src="assets/mark.svg?v=facet" alt="">M GOLD</a>
       ${isAdmin ? '' : `<div class="header-actions">
         <a class="icon-link" href="#catalog?focus=search" aria-label="${t('search')}">${icon('search')}</a>
-        <a class="icon-link header-chat" href="#chat" aria-label="${t('chat')}" title="${t('chat')}">${icon('help')}<span>${t('chatShort')}</span></a>
+        <a class="icon-link header-chat" href="#chat" aria-label="${t('chat')}" title="${t('chat')}">${icon('help')}<span>${t('chatShort')}</span><span id="visitor-chat-badge" class="unread-badge" aria-live="polite" aria-label="${t('unreadChat')}" ${visitorUnreadChats.size ? '' : 'hidden'}>${visitorUnreadChats.size}</span></a>
         <a id="header-cart" class="icon-link" href="#cart" aria-label="${t('cart')} · ${count}">${icon('bag')}<span class="count" aria-hidden="true">${count}</span></a>
       </div>`}
     </div>
@@ -722,7 +722,7 @@ async function loadCatalog() {
     catalogState = error.message === 'login' && isAdmin ? 'login' : 'backend';
   }
   render();
-  if (isAdmin && catalogState === 'ready') refreshChat();
+  if (catalogState === 'ready') refreshChat();
 }
 
 if (localMode) pruneCart();
