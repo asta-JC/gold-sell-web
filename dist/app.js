@@ -33,6 +33,7 @@ const copy = {
   gone:['Bu taqinchoq hozir katalogda yo‘q.','Этого украшения сейчас нет в каталоге.'],
   weight:['Vazni','Вес'], size:['O‘lchami','Размер'], stock:['Mavjudligi','Наличие'],
   available:['Mavjud','В наличии'], unavailable:['Mavjud emas','Нет в наличии'],
+  viewDetails:['Batafsil ko‘rish','Подробнее об изделии'],
   checkout:['Rasmiylashtirish','Оформить бронь'], continueShopping:['Xaridni davom ettirish','Продолжить покупки'],
   add:['Savatga qo‘shish','В корзину'], added:['Savatga qo‘shildi','Добавлено в корзину'], inCart:['Savatingizda','В вашей корзине'], pieces:['ta','шт.'],
   emptyCart:['Savatingiz bo‘sh.','Ваша корзина пуста.'], total:['Jami','Итого'],
@@ -336,8 +337,8 @@ function cartPage() {
   if (!items.length) return page(t('cart'),`<div class="empty"><p>${t('emptyCart')}</p><div class="actions cart-empty-actions">${btn('explore','#catalog')}${existingChat}</div></div>`);
   return page(t('cart'), `
     <div class="cart-layout"><section class="panel">
-      ${items.map(product => `<div class="cart-row"><img src="${escapeHtml(product.photo)}" alt="">
-        <div class="grow"><a href="${productLink(product)}"><strong>${escapeHtml(local(product))}</strong></a><br><small>${money(product.price)}</small></div>
+      ${items.map(product => `<div class="cart-row"><a class="cart-product-link grow" href="${productLink(product)}"><img src="${escapeHtml(product.photo)}" alt="">
+        <span class="grow"><strong>${escapeHtml(local(product))}</strong><small>${money(product.price)}</small><span class="cart-product-hint">${t('viewDetails')}${icon('arrow')}</span></span></a>
         <button class="text-action" data-remove="${product.id}" aria-label="${t('remove')} · ${escapeHtml(local(product))}">${icon('trash')}${t('remove')}</button></div>`).join('')}
       <div class="cart-continue">${btn('continueShopping','#catalog',true)}</div>
     </section><section class="panel stack"><h2>${t('order')}</h2><strong>${t('total')} · ${money(cartTotal(items))}</strong><p class="muted">${t(localMode ? 'orderNote' : 'chatHelp')}</p>
