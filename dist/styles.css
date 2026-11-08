@@ -93,3 +93,6 @@ a.customer-phone{text-decoration:underline;text-underline-offset:3px}
 .phone-control{display:flex;align-items:center;min-width:0;background:var(--paper);border:1px solid #aa9ba0}.phone-control:focus-within{outline:3px solid #9a631b;outline-offset:4px}.phone-control .phone-prefix{flex:none;padding:0 14px;color:var(--plum);font-weight:650;border-right:1px solid var(--line)}.field .phone-control input{border:0;min-width:0;letter-spacing:.06em;font-variant-numeric:tabular-nums}.phone-control input:focus-visible{outline:none}
 
 .cart-empty-actions{align-items:stretch;gap:12px}.cart-empty-actions .button{min-height:48px;vertical-align:middle}
+
+.product-gallery .gallery-main{border-radius:24px;border:1px solid #cbb69b66;box-shadow:0 8px 28px #6e482b0d}.product-gallery .photo-list button[data-gallery-photo]{border-radius:10px;overflow:hidden}.product-gallery .photo-list button[data-gallery-photo] img{border-radius:7px}
+@media(max-width:740px){.product-gallery .gallery-main{border-radius:18px}}
