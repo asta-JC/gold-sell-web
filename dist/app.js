@@ -333,7 +333,7 @@ function relatedSection(product) {
 function cartPage() {
   const items = cartItems();
   const existingChat = visitorThread && !localMode ? `<a class="button secondary" href="#chat">${icon('help')}${t('openChat')}</a>` : '';
-  if (!items.length) return page(t('cart'),`<div class="empty"><p>${t('emptyCart')}</p>${btn('explore','#catalog')}${existingChat}</div>`);
+  if (!items.length) return page(t('cart'),`<div class="empty"><p>${t('emptyCart')}</p><div class="actions cart-empty-actions">${btn('explore','#catalog')}${existingChat}</div>`);
   return page(t('cart'), `
     <div class="cart-layout"><section class="panel">
       ${items.map(product => {
