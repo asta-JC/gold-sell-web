@@ -234,7 +234,7 @@ function home() {
   return `<div class="wrap">
     <section class="hero"><div class="hero-copy"><span class="eyebrow">${t('label')}</span>
       <h1>${t('headline')}</h1><p>${t('intro')}</p>${btn('explore','#catalog')}</div>
-      <div class="hero-visual"><img src="assets/hero.jpg" alt="${t('heroAlt')}"></div>
+      <div class="hero-visual"><img src="assets/hero.jpg" fetchpriority="high" loading="eager" alt="${t('heroAlt')}"></div>
     </section>
     <div class="details-strip">
       <a href="${storefront}#info">${icon('gem')}${t('assay')}</a><a href="${storefront}#info">${icon('box')}${t('pickup')}</a><a href="${telegramContact}">${icon('help')}${t('contact')}</a>
@@ -500,6 +500,9 @@ function render(preserve = false) {
       ${field('password','<input name="password" type="password" autocomplete="current-password" required>')}
       <p class="error" id="login-error" role="alert"></p><button class="button">${t('login')}</button>
     </form>`);
+  } else if (!isAdmin && (!path || path === 'home')) {
+    // The landing page must not wait for the product API.
+    markup = home();
   } else if (catalogState !== 'ready') {
     markup = page(t(isAdmin ? 'admin' : 'shop'), `<p class="empty">${t(catalogState)}</p>`);
   } else if ((!localMode && isAdmin && path === 'admin/chat') || (!isAdmin && path === 'chat')) {
