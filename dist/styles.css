@@ -116,3 +116,158 @@ a.customer-phone{text-decoration:underline;text-underline-offset:3px}
 @media(max-width:480px){.photo-viewer-bar>strong{font-size:.77rem}.photo-viewer-controls{gap:4px}.photo-viewer-controls button{min-width:40px;height:44px}.photo-viewer-controls [data-zoom=reset]{min-width:54px}.photo-viewer-bar{padding-inline:10px}.gallery-zoom{border-radius:18px}}
 
 .product-remove-cart{display:inline-flex;align-items:center;justify-self:start;gap:7px;padding:8px 0;min-height:44px;color:var(--muted);font-size:.82rem}.product-remove-cart .icon{width:16px;height:16px}.product-remove-cart:hover{color:#922e3d}
+
+.language-code, .catalog-search-button, #filter-toggle { display: none; }
+#filter-options { display: contents; }
+#custom-price { order: 1; }
+
+@media (max-width: 740px) {
+  .storefront .masthead {
+    display: flex;
+    gap: 0;
+    min-height: 60px;
+    padding-block: 6px;
+  }
+
+  .storefront .masthead .wordmark {
+    flex: 1;
+    gap: 6px;
+    white-space: nowrap;
+    font-size: clamp(1.17rem, 5vw, 1.5rem);
+    letter-spacing: .09em;
+  }
+
+  .storefront .masthead .wordmark img { width: 26px; height: 26px; }
+  .storefront .header-actions { flex-wrap: nowrap; }
+  .storefront .header-actions .icon-link { position: relative; padding: 0; border-radius: 10px; }
+  .storefront .header-actions :is(.count, .unread-badge) {
+    position: absolute;
+    inset: 2px 1px auto auto;
+    min-width: 16px;
+    height: 16px;
+    padding-inline: 3px;
+    font-size: .65rem;
+  }
+  .storefront .languages { order: 1; }
+  .storefront .languages button {
+    padding: 0;
+    color: var(--plum);
+    font-size: .77rem;
+    font-weight: 700;
+  }
+  .storefront .languages [aria-pressed=true], .storefront .language-name { display: none; }
+  .storefront .language-code {
+    display: inline-grid;
+    place-items: center;
+    min-width: 33px;
+    min-height: 28px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+
+  .storefront .nav {
+    width: 100%;
+    padding: 4px 16px;
+    flex-wrap: nowrap;
+    gap: 6px;
+    overflow-x: auto;
+  }
+  .storefront .nav a {
+    flex: none;
+    padding-inline: 11px;
+    border-radius: 10px;
+    white-space: nowrap;
+    font-size: .87rem;
+  }
+  .storefront .nav a[aria-current] { background: #f1e8de; color: var(--plum); font-weight: 650; }
+  .storefront .nav a:focus-visible { outline-offset: -3px; }
+
+  .storefront .page { padding-block: 10px 48px; }
+  .storefront .page h1 { margin: 3px 0 16px; overflow-wrap: anywhere; }
+  .storefront .breadcrumb { font-size: .875rem; }
+  .storefront .filters {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+  }
+  .storefront .filters > .field {
+    position: relative;
+    grid-area: 1 / 1;
+  }
+  .storefront .filters > .field > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .storefront #catalog-search { padding-inline: 11px 48px; border-radius: 10px; }
+  .storefront .catalog-search-button, .storefront #filter-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    height: 48px;
+    border-radius: 10px;
+  }
+  .storefront .catalog-search-button {
+    grid-area: 1 / 1;
+    justify-self: end;
+    z-index: 1;
+    border: 0;
+  }
+  .storefront #filter-toggle {
+    grid-area: 1 / 2;
+    gap: 5px;
+    padding-inline: 9px;
+    border: 1px solid var(--line);
+    background: var(--paper);
+    font-size: .875rem;
+    font-weight: 650;
+  }
+  .storefront #filter-toggle[aria-expanded=true] { background: #f1e8de; border-color: #b8a8a8; }
+  .storefront #filter-options {
+    grid-column: 1 / -1;
+    display: none;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--paper);
+  }
+  .storefront #filter-toggle[aria-expanded=true] + #filter-options { display: grid; }
+  .storefront #filter-options :is(select, input, .button) { border-radius: 8px; }
+  .storefront #custom-price { order: 0; width: 100%; }
+  .storefront .catalog-results { justify-content: space-between; min-height: 44px; margin-block: 4px; }
+  .storefront .catalog-results .result-count { margin: 0; font-size: .875rem; }
+
+  .storefront .hero { min-height: 0; border-radius: 16px; overflow: hidden; }
+  .storefront .hero-copy { padding: 22px 18px; }
+  .storefront .hero h1 { margin-block: 9px 12px; }
+  .storefront .hero p { margin-bottom: 16px; }
+  .storefront .hero .button { border-radius: 10px; }
+  .storefront .hero-visual { aspect-ratio: 1.8; }
+  .storefront .category-card { border-radius: 12px; overflow: hidden; }
+  .storefront .category-card span { font-size: 1rem; overflow-wrap: anywhere; }
+  .storefront .card h3 { font-size: 1.13rem; overflow-wrap: anywhere; }
+  .storefront .card .card-copy { padding: 10px; }
+  .storefront .card-open { display: none; }
+
+  .storefront .product-detail { grid-template-columns: minmax(0, 1fr); gap: 16px; margin-top: 4px; }
+  .storefront .product-info { display: flex; flex-direction: column; }
+  .storefront .product-info .product-price { margin-block: 10px 14px; }
+  .storefront .product-info :is(.product-description, .product-specs, .product-pickup) { order: 1; }
+  .storefront .product-specs dd { min-width: 0; overflow-wrap: anywhere; }
+  .storefront .product-info #product-purchase .button { width: 100%; }
+  .storefront .product-gallery .photo-list button[data-gallery-photo] { width: 49px; height: 49px; }
+
+  .storefront .cart-layout { gap: 12px; }
+  .storefront .cart-layout .panel { padding: 14px; border-radius: 14px; }
+  .storefront .cart-row { gap: 4px; padding-top: 0; }
+  .storefront .cart-row .grow { min-width: 0; overflow-wrap: anywhere; }
+  .storefront .cart-product-link { padding: 0; gap: 10px; }
+  .storefront .cart-product-link img { width: 60px; height: 60px; }
+  .storefront .cart-row > [data-remove] { flex-basis: 100%; justify-content: flex-end; }
+  .storefront .cart-layout .button { width: 100%; border-radius: 10px; }
+}

@@ -12,6 +12,7 @@ const copy = {
   logout:['Chiqish','Выйти'],
   skip:['Asosiy mazmunga o‘tish','Перейти к содержанию'], shop:['Katalog','Каталог'],
   cart:['Savat','Корзина'], search:['Qidiruv','Поиск'], admin:['Boshqaruv paneli','Панель управления'],
+  searchHint:['Taqinchoq qidirish','Поиск украшений'], filters:['Filtrlar','Фильтры'],
   label:['OLTIN TAQINCHOQLAR','ЗОЛОТЫЕ УКРАШЕНИЯ'],
   headline:['Siz eng yaxshisiga loyiqsiz','Вы достойны лучшего'],
   intro:['Har kun va alohida lahzalar uchun oltin taqinchoqlar. O‘zingizga mosini toping.','Золотые украшения для каждого дня и особых моментов. Найдите своё.'],
@@ -90,6 +91,7 @@ const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({
 })[ch]);
 const iconPaths = {
   search:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>',
+  filters:'<path d="M3 6h18M3 12h18M3 18h18M8 3v6m8 0v6m-6 0v6"/>',
   bag:'<path d="M5 8h14l2 13H3zM8 9V6a4 4 0 0 1 8 0v3"/>',
   arrow:'<path d="M3 12h17m-6-6 6 6-6 6"/>',
   weight:'<path d="M7 8h10l3 13H4L7 8Z"/><circle cx="12" cy="5" r="3"/>',
@@ -177,6 +179,15 @@ function updateMarkup(target, markup, preserveChat = false) {
 }
 
 let headerLanguage;
+function updateCategoryNav() {
+  const {path, params} = route();
+  const current = path === 'catalog' ? shopLink(params.get('category')) : '';
+  document.querySelectorAll('.nav a').forEach(link => {
+    if (link.getAttribute('href') === current) link.setAttribute('aria-current', 'page');
+    else link.removeAttribute('aria-current');
+  });
+}
+
 function header(preserve = false) {
   const count = cartItems().reduce((sum, product) => sum + basket[product.id], 0);
   if (headerLanguage === lang) {
@@ -185,14 +196,15 @@ function header(preserve = false) {
       cartLink.setAttribute('aria-label', t('cart') + ' · ' + count);
       cartLink.querySelector('.count').textContent = count;
     }
+    updateCategoryNav();
     return;
   }
   headerLanguage = lang;
   const headerMarkup = `
     <div class="masthead wrap">
       <div class="languages" aria-label="${lang ? 'Язык' : 'Til'}">
-        <button type="button" data-language="0" lang="uz" aria-pressed="${!lang}">O‘zbekcha</button>
-        <button type="button" data-language="1" lang="ru" aria-pressed="${!!lang}">Русский</button>
+        <button type="button" data-language="0" lang="uz" aria-label="O‘zbekcha" aria-pressed="${!lang}"><span class="language-name">O‘zbekcha</span><span class="language-code" aria-hidden="true">UZ</span></button>
+        <button type="button" data-language="1" lang="ru" aria-label="Русский" aria-pressed="${!!lang}"><span class="language-name">Русский</span><span class="language-code" aria-hidden="true">RU</span></button>
       </div>
       <a class="wordmark" href="${storefront}#home" aria-label="M Gold · ${t('home')}"><img src="assets/mark.svg?v=facet" alt="">M GOLD</a>
       ${isAdmin ? '' : `<div class="header-actions">
@@ -213,6 +225,7 @@ function header(preserve = false) {
     $('#header').innerHTML = headerMarkup;
     $('#footer').innerHTML = footerMarkup;
   }
+  updateCategoryNav();
   $('#skip').textContent = t('skip');
   document.documentElement.lang = lang ? 'ru' : 'uz';
   document.title = 'M Gold — ' + (isAdmin ? t('admin') : lang ? 'Золотые украшения' : 'Oltin taqinchoqlar');
@@ -287,19 +300,24 @@ function shop(params) {
   const results = published().filter(p => (!category || category === p.category) &&
     (!purity || purity === p.purity) && (!max || p.price <= Number(max)) && matches(p,query));
   const purityOptions = [...new Set([...commonPurities, ...published().map(p => p.purity)])].sort((a,b) => Number(a) - Number(b));
+  const activeFilters = [category, purity, max].filter(Boolean).length;
   return page(category && categories[category] ? categoryName(category) : t('shop'), `
     <form id="filters" class="filters" aria-label="${t('shop')}">
-      ${field('search',`<input id="catalog-search" name="q" type="search" value="${escapeHtml(query)}">`)}
-      ${field('category',`<select name="category">${categoryOptions(category,true)}</select>`)}
-      ${field('purity',`<select name="purity">${option('',t('all'),purity)}${purityOptions.map(p => option(p,p,purity)).join('')}</select>`)}
-      ${field('maxPrice',`<select name="pricePreset">${option('',t('noLimit'),preset)}
-        ${priceLimits.map(limit => option(limit, lang ? t('pricePrefix') + ' ' + money(Number(limit)) : money(Number(limit)) + ' ' + t('pricePrefix'), preset)).join('')}
-        ${option('custom',t('customPrice'),preset)}</select>`)}
-      <button class="button">${t('apply')}</button>
-      <div id="custom-price" ${preset === 'custom' ? '' : 'hidden'}>
-        ${field('maxSum',`<input name="max" type="text" inputmode="numeric" pattern="[0-9\\s]{0,15}" maxlength="15" placeholder="2 500 000" value="${preset === 'custom' ? max : ''}" ${preset === 'custom' ? '' : 'disabled'}>`)}
+      ${field('search',`<input id="catalog-search" name="q" type="search" placeholder="${t('searchHint')}" value="${escapeHtml(query)}">`)}
+      <button type="submit" class="catalog-search-button" aria-label="${t('search')}">${icon('search')}</button>
+      <button type="button" id="filter-toggle" aria-controls="filter-options" aria-expanded="false">${icon('filters')}${t('filters')}${activeFilters ? `<span class="count">${activeFilters}</span>` : ''}</button>
+      <div id="filter-options">
+        ${field('category',`<select name="category">${categoryOptions(category,true)}</select>`)}
+        ${field('purity',`<select name="purity">${option('',t('all'),purity)}${purityOptions.map(p => option(p,p,purity)).join('')}</select>`)}
+        ${field('maxPrice',`<select name="pricePreset">${option('',t('noLimit'),preset)}
+          ${priceLimits.map(limit => option(limit, lang ? t('pricePrefix') + ' ' + money(Number(limit)) : money(Number(limit)) + ' ' + t('pricePrefix'), preset)).join('')}
+          ${option('custom',t('customPrice'),preset)}</select>`)}
+        <div id="custom-price" ${preset === 'custom' ? '' : 'hidden'}>
+          ${field('maxSum',`<input name="max" type="text" inputmode="numeric" pattern="[0-9\\s]{0,15}" maxlength="15" placeholder="2 500 000" value="${preset === 'custom' ? max : ''}" ${preset === 'custom' ? '' : 'disabled'}>`)}
+        </div>
+        <button class="button">${t('apply')}</button>
       </div>
-    </form><div class="actions"><p class="result-count muted">${t('found')} · ${results.length}</p>
+    </form><div class="catalog-results actions"><p class="result-count muted">${t('found')} · ${results.length}</p>
     ${query || category || purity || max ? `<a class="text-action" href="#catalog">${t('reset')}</a>` : ''}</div>
     ${results.length ? `<div class="product-grid">${results.map(card).join('')}</div>` : `<div class="empty">${t('none')}</div>`}`);
 }
@@ -539,6 +557,11 @@ addEventListener('hashchange', () => {
     $('#main').focus({preventScroll:true});
   }
 });
+document.addEventListener('invalid', event => {
+  if (event.target.closest('#filter-options')) {
+    $('#filter-toggle').setAttribute('aria-expanded', 'true');
+  }
+}, true);
 document.addEventListener('input', event => {
   const input = event.target;
   if (input.name === 'price' && input.closest('#product-form')) {
@@ -624,7 +647,13 @@ document.addEventListener('submit', async event => {
     }
     const max = priceLimit(values.get('pricePreset') === 'custom' ? values.get('max') : values.get('pricePreset'));
     if (max) params.set('max',max);
-    location.hash = 'catalog' + (params.size ? '?' + params : '');
+    const destination = '#catalog' + (params.size ? '?' + params : '');
+    if (location.hash === destination) {
+      $('#filter-toggle').setAttribute('aria-expanded', 'false');
+      $('#main').focus({preventScroll:true});
+    } else {
+      location.hash = destination;
+    }
   }
   if (form.id === 'product-form') {
     event.preventDefault();
@@ -666,9 +695,13 @@ document.addEventListener('click', async event => {
     return;
   }
   const {language, add, remove} = button.dataset;
+  if (button.id === 'filter-toggle') {
+    button.setAttribute('aria-expanded', String(button.getAttribute('aria-expanded') === 'false'));
+  }
   if (language !== undefined) {
     if (Number(language) === lang) return;
     const filters = $('#filters') ? [...new FormData($('#filters'))] : [];
+    const filtersExpanded = $('#filter-toggle')?.getAttribute('aria-expanded');
     lang = Number(language);
     try { localStorage.setItem('zarrin-language',JSON.stringify(lang)); } catch {}
     $('#notice').textContent = '';
@@ -677,8 +710,10 @@ document.addEventListener('click', async event => {
       const form = $('#filters');
       filters.forEach(([key,value]) => { form.elements[key].value = value; });
       updatePriceInput(form);
+      $('#filter-toggle').setAttribute('aria-expanded', filtersExpanded);
     }
-    $('[data-language="' + language + '"]').focus();
+    const selectedLanguage = $('[data-language="' + language + '"]');
+    (selectedLanguage.getClientRects().length ? selectedLanguage : $('.languages [aria-pressed="false"]')).focus();
   }
   if (add || remove) {
     const product = published().find(p => p.id === (add || remove) && p.available);
