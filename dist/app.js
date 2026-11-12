@@ -55,6 +55,7 @@ const copy = {
   reset:['Tozalash','Сбросить'], found:['Topilgan mahsulotlar','Найдено изделий'],
   none:['Mos taqinchoq topilmadi.','Подходящих украшений не найдено.'],
   style:['Uslub','Стиль'],
+  estimatedPrice:['Taxminiy narx','Ориентировочная цена'],
   referenceSpecs:['Proba, vazn va o‘lcham manbadagi buyumga tegishli. Rasmlar sun’iy intellekt yordamida tayyorlangan.','Проба, вес и размер относятся к изделию из источника. Изображения созданы ИИ.'],
   illustrativePhoto:['Rasmlar sun’iy intellekt yordamida tayyorlangan.','Изображения созданы ИИ.'],
   referenceSource:['Ma’lumot manbasi','Источник характеристик'],
@@ -268,7 +269,9 @@ function card(product) {
     <div class="card-visual"><img loading="lazy" src="${escapeHtml(product.photo)}" alt="">
       ${product.purity ? `<span class="card-purity" aria-label="${t('purity')} ${escapeHtml(product.purity)}">${icon('gem')}${escapeHtml(product.purity)}</span>` : ''}</div>
     <div class="card-copy"><div class="card-meta"><small>${categoryName(product.category)}</small><span class="card-stock ${product.available ? 'is-available' : ''}">${t(product.available ? 'available' : 'unavailable')}</span></div>
-      <h3>${escapeHtml(local(product))}</h3><div class="card-bottom"><span class="price">${product.reference ? (lang ? product.styleRu : product.styleUz) : money(product.price)}</span><span class="card-open" aria-hidden="true">${icon('arrow')}</span></div>
+      <h3>${escapeHtml(local(product))}</h3><div class="card-bottom"><div>
+        ${product.reference ? `<small class="card-price-label">${t('estimatedPrice')}</small>` : ''}<span class="price">${money(product.price)}</span>
+      </div><span class="card-open" aria-hidden="true">${icon('arrow')}</span></div>
     </div></a>`;
 }
 function infoContent() {
@@ -401,7 +404,7 @@ function detail(product, preview = false) {
   return `<article class="product-detail">
     ${productGallery(product, product.reference ? sampleAngles.map(angle => angle[lang + 1]) : [])}
     <div class="product-info"><span class="eyebrow">${categoryName(product.category)}</span><${preview ? 'h2' : 'h1'}>${escapeHtml(local(product))}</${preview ? 'h2' : 'h1'}>
-      ${product.reference ? '' : `<div class="product-price"><span class="muted">${t('price')}</span><p class="price">${money(product.price)}</p></div>`}${description ? `<p class="product-description">${escapeHtml(description)}</p>` : ''}
+      <div class="product-price"><span class="muted">${t(product.reference ? 'estimatedPrice' : 'price')}</span><p class="price">${money(product.price)}</p></div>${description ? `<p class="product-description">${escapeHtml(description)}</p>` : ''}
       <dl class="specs product-specs">${specs.map(([label,value,symbol]) => `<div><dt><span class="spec-icon">${icon(symbol)}</span>${copy[label] ? t(label) : label}</dt><dd>${label === 'stock' ? `<span class="detail-stock ${product.available ? 'is-available' : ''}">${escapeHtml(value)}</span>` : escapeHtml(value)}</dd></div>`).join('')}</dl>
       ${product.reference ? `<p class="reference-note muted">${t(product.source ? 'referenceSpecs' : 'illustrativePhoto')}
         ${product.source ? `<a href="${escapeHtml(product.source)}">${t('referenceSource')}</a>` : ''}</p>` : ''}
@@ -716,9 +719,32 @@ document.addEventListener('submit', async event => {
 });
 function selectGalleryPhoto(button) {
   const gallery = button.closest('.product-gallery');
-  gallery.querySelector('.gallery-main').src = button.dataset.galleryPhoto;
-  gallery.querySelectorAll('[data-gallery-photo]').forEach(option =>
-    option.setAttribute('aria-pressed', String(option === button)));
+  const options = Array.from(gallery.querySelectorAll('[data-gallery-photo]'));
+  const current = options.findIndex(option => option.getAttribute('aria-pressed') === 'true');
+  const next = options.indexOf(button);
+  if (current === next) return;
+
+  const photo = gallery.querySelector('.gallery-main');
+  const animate = !isAdmin && matchMedia('(max-width: 740px) and (prefers-reduced-motion: no-preference)').matches;
+  photo.getAnimations().forEach(animation => animation.cancel());
+  gallery.querySelector('.gallery-outgoing')?.remove();
+  if (animate) {
+    const direction = next > current ? 1 : -1;
+    const outgoing = photo.cloneNode();
+    outgoing.className = 'gallery-outgoing';
+    outgoing.alt = '';
+    outgoing.setAttribute('aria-hidden', 'true');
+    photo.after(outgoing);
+    const timing = {duration:250, easing:'ease-out'};
+    outgoing.animate(
+      [{transform:'translateX(0)'}, {transform:`translateX(${-direction * 100}%)`}], timing
+    ).onfinish = () => outgoing.remove();
+    photo.animate(
+      [{transform:`translateX(${direction * 100}%)`}, {transform:'translateX(0)'}], timing
+    );
+  }
+  photo.src = button.dataset.galleryPhoto;
+  options.forEach(option => option.setAttribute('aria-pressed', String(option === button)));
 }
 
 let gallerySwipe;

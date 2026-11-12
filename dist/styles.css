@@ -129,6 +129,7 @@ a.customer-phone{text-decoration:underline;text-underline-offset:3px}
 .buyer-guide .text-action { margin-top: 5px; padding-inline: 0; }
 
 .reference-note a { text-decoration: underline; text-underline-offset: 3px; }
+.card-price-label { display: block; font-size: .72rem; }
 .storefront .has-multiple-photos .gallery-zoom { touch-action: pan-y pinch-zoom; }
 
 .storefront .nav a { gap: 7px; }
@@ -280,7 +281,46 @@ a.customer-phone{text-decoration:underline;text-underline-offset:3px}
   .storefront .product-info :is(.product-description, .product-specs, .product-pickup) { order: 1; }
   .storefront .product-specs dd { min-width: 0; overflow-wrap: anywhere; }
   .storefront .product-info #product-purchase .button { width: 100%; }
-  .storefront .product-gallery .photo-list button[data-gallery-photo] { width: 49px; height: 49px; }
+  .storefront .has-multiple-photos { position: relative; }
+  .storefront .has-multiple-photos .gallery-zoom { overflow: hidden; }
+  .storefront .has-multiple-photos .gallery-main { border: 0; border-radius: 0; box-shadow: none; }
+  .storefront .has-multiple-photos .gallery-zoom-hint { top: 10px; right: 10px; bottom: auto; }
+  .storefront .has-multiple-photos .gallery-zoom-hint span { display: none; }
+  .storefront .gallery-outgoing { position: absolute; inset: 0; height: 100%; pointer-events: none; }
+  .storefront .product-gallery .photo-list {
+    position: absolute;
+    inset: auto 0 4px;
+    justify-content: center;
+    gap: 0;
+    width: fit-content;
+    margin: 0 auto;
+  }
+  .storefront .product-gallery .photo-list button[data-gallery-photo] {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    outline-offset: -4px;
+  }
+  .storefront .product-gallery .photo-list button[aria-pressed=true]:not(:focus-visible) { outline: 0; }
+  .storefront .product-gallery .photo-list button img { display: none; }
+  .storefront .product-gallery .photo-list button::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #fff;
+    opacity: .7;
+    box-shadow: 0 0 3px #301c29;
+  }
+  .storefront .product-gallery .photo-list button[aria-pressed=true]::before {
+    width: 7px;
+    height: 7px;
+    opacity: 1;
+  }
 
   .storefront .cart-layout { gap: 12px; }
   .storefront .cart-layout .panel { padding: 14px; border-radius: 14px; }
