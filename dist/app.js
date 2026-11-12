@@ -24,8 +24,31 @@ const copy = {
   all:['Barchasi','Все'], info:['Xaridor uchun ma’lumot','Информация для покупателей'],
   photoDisclosure:['Mahsulot rasmlari haqida','О фотографиях изделий'],
   photoDisclosureText:['Mahsulot rasmlari sun’iy intellekt (AI) yordamida tahrirlangan. Shu sababli rang, yorug‘lik va ayrim detallar mahsulotning haqiqiy ko‘rinishidan farq qilishi mumkin. Xarid qilishdan oldin asl surat yoki videoni so‘rab, mahsulot tafsilotlarini do‘kon bilan aniqlashtiring.','Фотографии изделий обработаны с помощью искусственного интеллекта (ИИ). Цвет, освещение и отдельные детали могут отличаться от реального изделия. Перед покупкой запросите оригинальное фото или видео и уточните детали у магазина.'],
-  assayText:['Oltin probasi va vaznini mahsulot sahifasidan ko‘ring.','Проба и вес указаны на странице изделия.'],
-  pickupText:['Katalogda narxlarni ko‘ring. Tanlagan taqinchog‘ingizni bron qilib, do‘kondan olib ketasiz.','Посмотрите цены в каталоге. Выбранное украшение можно забронировать и забрать в магазине.'],
+  guideIntro:['Katalogdan taqinchoqni tanlab, mahsulot sahifasini oching. Xarid yoki bron qilishdan oldin quyidagi ma’lumotlarni tekshiring.','Выберите украшение в каталоге и откройте его страницу. Перед покупкой или бронированием проверьте следующие характеристики.'],
+  purityGuide:[
+    'Proba qotishmaning 1 000 qismida necha qism sof oltin borligini bildiradi. Masalan, 585 proba — 58,5% sof oltin, 750 proba — 75%. Qolgan qismini qotishmadagi boshqa metallar tashkil qiladi.',
+    'Проба показывает, сколько частей чистого золота содержится в 1 000 частях сплава. Например, 585 проба означает 58,5% чистого золота, а 750 проба — 75%. Остальное приходится на другие металлы в сплаве.'
+  ],
+  weightGuide:[
+    'Vazn grammda (g) ko‘rsatiladi. Masalan, 3,20 g — taqinchoqning umumiy vazni. Unda tosh yoki boshqa qo‘shimcha qismlar bo‘lsa, vaznga ular ham kirishi mumkin. Faqat oltin qotishmasining vazni kerak bo‘lsa, do‘kondan aniqlashtiring.',
+    'Вес указан в граммах (г). Например, 3,20 г — общий вес украшения. Он может включать камни и другие детали. Если вам нужен вес только золотого сплава, уточните его у магазина.'
+  ],
+  sizeGuide:[
+    'O‘lcham taqinchoq turiga bog‘liq. Uzukda bu uzuk razmeri, marjon yoki bilaguzukda uzunlik, sirg‘ada esa uzunlik yoki diametr bo‘lishi mumkin. Birligi yozilgan bo‘lsa, mm millimetrni, cm santimetrni bildiradi. «—» belgisi o‘lcham kiritilmaganini anglatadi. Mos kelishini tekshirish uchun do‘kondan aniq o‘lchamni so‘rang.',
+    'Размер зависит от вида украшения. Для кольца это может быть размер кольца, для цепочки или браслета — длина, для серёг — длина или диаметр. Если указана единица, мм означает миллиметры, см — сантиметры. Знак «—» означает, что размер не указан. Уточните замеры у магазина, чтобы проверить, подойдёт ли украшение.'
+  ],
+  skuGuide:[
+    'SKU — do‘konning taqinchoqni aniqlash uchun ishlatadigan noyob kodi. Bir-biriga o‘xshash buyumlarni ajratish uchun chatda mahsulot sahifasidagi SKU kodini yuboring. Kodni topa olmasangiz, mahsulot havolasini yuboring.',
+    'SKU — уникальный код, по которому магазин находит украшение. Чтобы различить похожие изделия, отправьте в чат SKU со страницы товара. Если не нашли код, отправьте ссылку на украшение.'
+  ],
+  stockGuide:[
+    '«Mavjud» — taqinchoqni savatga qo‘shib, bron so‘rovini yuborishingiz mumkin. «Mavjud emas» — hozircha bu taqinchoqni savatga qo‘shib yoki bron qilib bo‘lmaydi. Qachon sotuvga chiqishi yoki o‘xshash variantlar haqida do‘kondan so‘rashingiz mumkin.',
+    '«В наличии» — украшение можно добавить в корзину и отправить запрос на бронь. «Нет в наличии» — сейчас изделие нельзя добавить в корзину или забронировать. Спросите магазин, когда оно появится или какие есть похожие варианты.'
+  ],
+  pickupText:[
+    'Mahsulot sahifasida narx va o‘lchamni tekshiring, taqinchoqni savatga qo‘shing va «Rasmiylashtirish» tugmasini bosing. Savatga qo‘shishning o‘zi bronni tasdiqlamaydi. Bron holati va olib ketish vaqtini do‘kon bilan chatda aniqlashtiring.',
+    'Проверьте цену и размер на странице изделия, добавьте его в корзину и нажмите «Оформить бронь». Добавление в корзину само по себе не подтверждает бронь. Уточните статус брони и время самовывоза у магазина в чате.'
+  ],
   contactText:['Savollaringiz bo‘lsa, Telegram orqali yozing.','Если у вас есть вопросы, напишите нам в Telegram.'],
   home:['Bosh sahifa','Главная'], category:['Turkum','Категория'],
   maxPrice:['Narx chegarasi','Предел цены'], noLimit:['Cheklanmagan','Без ограничений'], customPrice:['Boshqa summa','Другая сумма'], maxSum:['Eng yuqori narx (so‘m)','Цена до (сум)'], pricePrefix:['gacha','до'], purity:['Oltin probasi','Проба золота'], apply:['Qo‘llash','Применить'],
@@ -90,6 +113,12 @@ const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({
   '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
 })[ch]);
 const iconPaths = {
+  catalog:'<rect x="3.5" y="3.5" width="6" height="6" rx="1"/><rect x="14.5" y="3.5" width="6" height="6" rx="1"/><rect x="3.5" y="14.5" width="6" height="6" rx="1"/><rect x="14.5" y="14.5" width="6" height="6" rx="1"/>',
+  rings:'<circle cx="12" cy="14.5" r="6.5"/><path d="m8 5 2-2h4l2 2-4 4z"/>',
+  earrings:'<path d="M5 8V6a2.5 2.5 0 0 1 5 0m4 2V6a2.5 2.5 0 0 1 5 0M5 8c-1 2-3 4.5-3 7a3 3 0 0 0 6 0c0-2.5-2-5-3-7Zm14 0c-1 2-3 4.5-3 7a3 3 0 0 0 6 0c0-2.5-2-5-3-7Z"/>',
+  bracelets:'<ellipse cx="12" cy="12" rx="9" ry="6"/><path d="M3 12v3a9 6 0 0 0 18 0v-3M9 6.4l1 3 2 1.1 2-1.1 1-3"/>',
+  necklaces:'<path d="M4 3c0 6 3 10 8 11 5-1 8-5 8-11m-8 11-3 4 3 4 3-4z"/>',
+  sets:'<path d="m9 3 5 5-5 6-5-6zm8 9 4 4-4 5-4-5zM4 8h10m-1 8h8"/>',
   search:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>',
   filters:'<path d="M3 6h18M3 12h18M3 18h18M8 3v6m8 0v6m-6 0v6"/>',
   bag:'<path d="M5 8h14l2 13H3zM8 9V6a4 4 0 0 1 8 0v3"/>',
@@ -214,8 +243,8 @@ function header(preserve = false) {
       </div>`}
     </div>
     ${isAdmin ? '' : `<div class="nav-shell"><nav class="nav wrap" aria-label="${t('shop')}">
-      <a href="#catalog">${t('shop')}</a>
-      ${Object.keys(categories).map(key => `<a href="${shopLink(key)}">${categoryName(key)}</a>`).join('')}
+      <a href="#catalog">${icon('catalog')}${t('shop')}</a>
+      ${Object.keys(categories).map(key => `<a href="${shopLink(key)}">${icon(key)}${categoryName(key)}</a>`).join('')}
     </nav></div>`}`;
   const footerMarkup = `<div class="footer"><div class="wrap footer-inner"><div><a class="wordmark" href="${storefront}#home"><img src="assets/mark.svg?v=facet" alt="">M GOLD</a></div><a href="${telegramContact}">${t('contact')}</a></div></div>`;
   if (preserve) {
@@ -239,8 +268,20 @@ function card(product) {
     </div></a>`;
 }
 function infoContent() {
-  return `<div class="info-grid">${[['assay','assayText'],['pickup','pickupText'],['contact','contactText'],['photoDisclosure','photoDisclosureText']].map(([title, body]) =>
-    `<article><h3>${t(title)}</h3><p>${t(body)}</p>${title === 'contact' ? `<a class="text-action" href="${telegramContact}">Telegram · @asta_cc ↗</a>` : ''}</article>`).join('')}</div>`;
+  const topics = [
+    ['purity', 'purityGuide', 'gem'],
+    ['weight', 'weightGuide', 'weight'],
+    ['size', 'sizeGuide', 'ruler'],
+    ['SKU', 'skuGuide', 'tag'],
+    ['stock', 'stockGuide', 'bag'],
+    ['pickup', 'pickupText', 'box'],
+    ['photoDisclosure', 'photoDisclosureText', 'search'],
+    ['contact', 'contactText', 'help']
+  ];
+  return `<p class="guide-intro muted">${t('guideIntro')}</p>
+    <div class="info-grid buyer-guide">${topics.map(([title, body, symbol]) =>
+      `<article><h3>${icon(symbol)}${title === 'SKU' ? 'SKU' : t(title)}</h3><p>${t(body)}</p>
+        ${title === 'contact' ? `<a class="text-action" href="${telegramContact}">Telegram · @asta_cc ↗</a>` : ''}</article>`).join('')}</div>`;
 }
 function home() {
   const featured = published().slice(0, 3);

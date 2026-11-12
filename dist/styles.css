@@ -121,6 +121,22 @@ a.customer-phone{text-decoration:underline;text-underline-offset:3px}
 #filter-options { display: contents; }
 #custom-price { order: 1; }
 
+.guide-intro { max-width: 70ch; margin-bottom: 20px; }
+.buyer-guide article { border-radius: 14px; }
+.buyer-guide h3 { display: flex; align-items: center; gap: 9px; }
+.buyer-guide h3 .icon { color: var(--gold); }
+.buyer-guide article p { max-width: 65ch; }
+.buyer-guide .text-action { margin-top: 5px; padding-inline: 0; }
+
+.storefront .nav a { gap: 7px; }
+.storefront .nav .icon {
+  width: 18px;
+  height: 18px;
+  color: var(--gold);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 @media (max-width: 740px) {
   .storefront .masthead {
     display: flex;
@@ -180,6 +196,7 @@ a.customer-phone{text-decoration:underline;text-underline-offset:3px}
     font-size: .87rem;
   }
   .storefront .nav a[aria-current] { background: #f1e8de; color: var(--plum); font-weight: 650; }
+  .storefront .nav .icon { width: 16px; height: 16px; }
   .storefront .nav a:focus-visible { outline-offset: -3px; }
 
   .storefront .page { padding-block: 10px 48px; }
