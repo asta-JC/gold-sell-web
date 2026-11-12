@@ -4,7 +4,31 @@ const sampleAngles = [
   ['right', 'O‘ng tomondan ko‘rinish', 'Вид справа']
 ];
 
-const jewelrySamples = Object.entries({
+const uzbekCatalog = 'https://tillabor.uz/uz/catalog';
+const earringCatalog = 'https://tillabor.uz/uz/categories/earrings';
+const setCatalog = 'https://tillabor.uz/uz/categories/sets';
+const tripleBandSource = 'https://tillabor.uz/ru/products/oltin-store-uch-qatorli';
+
+// Specifications describe the linked reference piece. The gallery is illustrative.
+const referenceSpecs = {
+  'wedding-band': ['585', 3.8, '', 'Klassik nikoh', 'Классическое обручальное', uzbekCatalog],
+  'solitaire-ring': ['750', 2.6, '', 'Yakka toshli solitaire', 'Солитер с одним камнем', uzbekCatalog],
+  'three-row-ring': ['585', 3.8, '18', 'Fianitli uch qator', 'Три дорожки с фианитами', tripleBandSource],
+  'hoop-earrings': ['585', 3, '', 'Naqshli halqa', 'Кольца с узором', earringCatalog],
+  'fianit-studs': ['585', 1.8, '', 'Fianitli puset', 'Пусеты с фианитами', earringCatalog],
+  'pearl-drops': ['585', 2.4, '', 'Osma marvarid', 'Подвески с жемчугом', earringCatalog],
+  'bismark-bracelet': ['585', 3.71, '', 'Bismark o‘rimi', 'Плетение «Бисмарк»', 'https://alifshop.uz/ru/moderated-offer/braslet-sokolov-zoloto-585-proba-1790143272'],
+  'curb-bracelet': ['585', 11.2, '', 'Pansir o‘rimi', 'Панцирное плетение', 'https://tillabor.uz/uz/categories/bracelets'],
+  'stone-bracelet': ['', null, '', 'Toshli tennis uslubi', 'Теннисный браслет с камнями', ''],
+  'heart-pendant': ['585', 1.4, '', 'Yurak shaklidagi kulon', 'Подвеска в форме сердца', uzbekCatalog],
+  'fianit-pendant': ['585', 1.6, '', 'Dumaloq fianitli kulon', 'Подвеска с круглым фианитом', uzbekCatalog],
+  'venetian-chain': ['', null, '', 'Venetsiya o‘rimi', 'Венецианское плетение', ''],
+  'petal-set': ['585', 9.9, '', 'Gul yaproqli garnitur', 'Гарнитур с лепестками', setCatalog],
+  'leaf-set': ['585', 10.4, '', 'Teksturali barg garnituri', 'Гарнитур с текстурным листом', setCatalog],
+  'three-row-set': ['585', 9.7, '18', 'Fianitli uch qatorli garnitur', 'Гарнитур с тремя дорожками фианитов', tripleBandSource]
+};
+
+const catalogReferences = Object.entries({
   rings: [
     ['wedding-band', 'Klassik nikoh uzugi', 'Классическое обручальное кольцо'],
     ['solitaire-ring', 'Yakka toshli uzuk', 'Кольцо с одним камнем'],
@@ -32,5 +56,8 @@ const jewelrySamples = Object.entries({
   ]
 }).flatMap(([category, designs]) => designs.map(([id, uz, ru]) => {
   const photos = sampleAngles.map(([angle]) => `assets/samples/${id}-${angle}.webp`);
-  return {id, uz, ru, category, photo: photos[0], photos};
+  const [purity, weight, size, styleUz, styleRu, source] = referenceSpecs[id];
+  const sku = 'MG-REF-' + id.toUpperCase();
+  return {id, uz, ru, category, photo: photos[0], photos, sku, purity, weight, size,
+    styleUz, styleRu, source, available: false, reference: true};
 }));

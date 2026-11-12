@@ -54,13 +54,10 @@ const copy = {
   maxPrice:['Narx chegarasi','Предел цены'], noLimit:['Cheklanmagan','Без ограничений'], customPrice:['Boshqa summa','Другая сумма'], maxSum:['Eng yuqori narx (so‘m)','Цена до (сум)'], pricePrefix:['gacha','до'], purity:['Oltin probasi','Проба золота'], apply:['Qo‘llash','Применить'],
   reset:['Tozalash','Сбросить'], found:['Topilgan mahsulotlar','Найдено изделий'],
   none:['Mos taqinchoq topilmadi.','Подходящих украшений не найдено.'],
-  sample:['Namuna','Образец'],
-  storeProducts:['Do‘kon mahsulotlari','Товары магазина'],
-  sampleCollection:['Taqinchoq namunalari','Образцы украшений'],
-  sampleNotice:[
-    'O‘zbekistondagi zargarlik do‘konlaridagi buyumlardan ilhomlangan namunalar. Rasmlar sun’iy intellekt yordamida yaratilgan. Sotuv va bron uchun mavjud emas.',
-    'Примеры, вдохновлённые украшениями из магазинов Узбекистана. Изображения созданы ИИ. Продажа и бронирование недоступны.'
-  ],
+  style:['Uslub','Стиль'],
+  referenceSpecs:['Proba, vazn va o‘lcham manbadagi buyumga tegishli. Rasmlar sun’iy intellekt yordamida tayyorlangan.','Проба, вес и размер относятся к изделию из источника. Изображения созданы ИИ.'],
+  illustrativePhoto:['Rasmlar sun’iy intellekt yordamida tayyorlangan.','Изображения созданы ИИ.'],
+  referenceSource:['Ma’lumot manbasi','Источник характеристик'],
   gone:['Bu taqinchoq hozir katalogda yo‘q.','Этого украшения сейчас нет в каталоге.'],
   weight:['Vazni','Вес'], size:['O‘lchami','Размер'], stock:['Mavjudligi','Наличие'],
   available:['Mavjud','В наличии'], unavailable:['Mavjud emas','Нет в наличии'],
@@ -269,9 +266,9 @@ function header(preserve = false) {
 function card(product) {
   return `<a class="card" href="${productLink(product)}">
     <div class="card-visual"><img loading="lazy" src="${escapeHtml(product.photo)}" alt="">
-      <span class="card-purity" aria-label="${t('purity')} ${escapeHtml(product.purity)}">${icon('gem')}${escapeHtml(product.purity)}</span></div>
+      ${product.purity ? `<span class="card-purity" aria-label="${t('purity')} ${escapeHtml(product.purity)}">${icon('gem')}${escapeHtml(product.purity)}</span>` : ''}</div>
     <div class="card-copy"><div class="card-meta"><small>${categoryName(product.category)}</small><span class="card-stock ${product.available ? 'is-available' : ''}">${t(product.available ? 'available' : 'unavailable')}</span></div>
-      <h3>${escapeHtml(local(product))}</h3><div class="card-bottom"><span class="price">${money(product.price)}</span><span class="card-open" aria-hidden="true">${icon('arrow')}</span></div>
+      <h3>${escapeHtml(local(product))}</h3><div class="card-bottom"><span class="price">${product.reference ? (lang ? product.styleRu : product.styleUz) : money(product.price)}</span><span class="card-open" aria-hidden="true">${icon('arrow')}</span></div>
     </div></a>`;
 }
 function infoContent() {
@@ -345,11 +342,10 @@ function shop(params) {
   const purity = params.get('purity') ?? '';
   const max = priceLimit(params.get('max') ?? '');
   const preset = max && !priceLimits.includes(max) ? 'custom' : max;
-  const results = published().filter(p => (!category || category === p.category) &&
-    (!purity || purity === p.purity) && (!max || p.price <= Number(max)) && matches(p,query));
-  const samples = purity || max ? [] : jewelrySamples.filter(item =>
-    (!category || category === item.category) && matches(item,query));
-  const purityOptions = [...new Set([...commonPurities, ...published().map(p => p.purity)])].sort((a,b) => Number(a) - Number(b));
+  const products = [...published(), ...catalogReferences];
+  const results = products.filter(p => (!category || category === p.category) &&
+    (!purity || purity === p.purity) && (!max || (p.price != null && p.price <= Number(max))) && matches(p,query));
+  const purityOptions = [...new Set([...commonPurities, ...products.map(p => p.purity).filter(Boolean)])].sort((a,b) => Number(a) - Number(b));
   const activeFilters = [category, purity, max].filter(Boolean).length;
   return page(category && categories[category] ? categoryName(category) : t('shop'), `
     <form id="filters" class="filters" aria-label="${t('shop')}">
@@ -367,34 +363,9 @@ function shop(params) {
         </div>
         <button class="button">${t('apply')}</button>
       </div>
-    </form><div class="catalog-results actions"><p class="result-count muted">${t(samples.length ? 'storeProducts' : 'found')} · ${results.length}</p>
+    </form><div class="catalog-results actions"><p class="result-count muted">${t('found')} · ${results.length}</p>
     ${query || category || purity || max ? `<a class="text-action" href="#catalog">${t('reset')}</a>` : ''}</div>
-    ${results.length ? `<div class="product-grid">${results.map(card).join('')}</div>` :
-      samples.length ? '' : `<div class="empty">${t('none')}</div>`}
-    ${samples.length ? sampleSection(samples) : ''}`);
-}
-
-function sampleSection(samples) {
-  return `<section class="sample-section" aria-labelledby="sample-title">
-    <h2 id="sample-title">${t('sampleCollection')}</h2>
-    <p class="muted">${t('sampleNotice')}</p>
-    <div class="product-grid">${samples.map(item => `<a class="card" href="#sample/${item.id}">
-      <div class="card-visual"><img src="${item.photo}" loading="lazy" alt=""><span class="card-purity">${t('sample')}</span></div>
-      <div class="card-copy"><small>${categoryName(item.category)}</small><h3>${escapeHtml(local(item))}</h3></div>
-    </a>`).join('')}</div>
-  </section>`;
-}
-
-function sampleDetail(item) {
-  return `<div class="page wrap">
-    <a class="breadcrumb" href="${shopLink(item.category)}">← &nbsp; ${categoryName(item.category)}</a>
-    <article class="product-detail">
-      ${productGallery(item, sampleAngles.map(angle => angle[lang + 1]))}
-      <div class="product-info"><span class="eyebrow">${t('sample')}</span>
-        <h1>${escapeHtml(local(item))}</h1><p class="muted">${t('sampleNotice')}</p>
-      </div>
-    </article>
-  </div>`;
+    ${results.length ? `<div class="product-grid">${results.map(card).join('')}</div>` : `<div class="empty">${t('none')}</div>`}`);
 }
 function sizeText(size) {
   if (!size) return '—';
@@ -423,15 +394,18 @@ function productGallery(product, angleLabels = []) {
 }
 
 function detail(product, preview = false) {
-  const specs = [['purity',product.purity,'gem'],['weight',number(product.weight) + (lang ? ' г' : ' g'),'weight'],
+  const specs = [['purity',product.purity || '—','gem'],['weight',product.weight == null ? '—' : number(product.weight) + (lang ? ' г' : ' g'),'weight'],
     ['size',sizeText(product.size),'ruler'],['stock',t(product.available ? 'available' : 'unavailable'),'box'],['SKU',product.sku,'tag']];
+  if (product.reference) specs.splice(3, 0, ['style', lang ? product.styleRu : product.styleUz, 'tag']);
   const description = lang ? product.descRu : product.descUz;
   return `<article class="product-detail">
-    ${productGallery(product)}
+    ${productGallery(product, product.reference ? sampleAngles.map(angle => angle[lang + 1]) : [])}
     <div class="product-info"><span class="eyebrow">${categoryName(product.category)}</span><${preview ? 'h2' : 'h1'}>${escapeHtml(local(product))}</${preview ? 'h2' : 'h1'}>
-      <div class="product-price"><span class="muted">${t('price')}</span><p class="price">${money(product.price)}</p></div>${description ? `<p class="product-description">${escapeHtml(description)}</p>` : ''}
+      ${product.reference ? '' : `<div class="product-price"><span class="muted">${t('price')}</span><p class="price">${money(product.price)}</p></div>`}${description ? `<p class="product-description">${escapeHtml(description)}</p>` : ''}
       <dl class="specs product-specs">${specs.map(([label,value,symbol]) => `<div><dt><span class="spec-icon">${icon(symbol)}</span>${copy[label] ? t(label) : label}</dt><dd>${label === 'stock' ? `<span class="detail-stock ${product.available ? 'is-available' : ''}">${escapeHtml(value)}</span>` : escapeHtml(value)}</dd></div>`).join('')}</dl>
-      ${preview ? '' : `<div id="product-purchase">${purchaseControls(product)}</div><div class="product-pickup">${icon('box')}<div><strong>${t('pickupDetail')}</strong><p>${t('pickupHint')}</p></div></div>`}
+      ${product.reference ? `<p class="reference-note muted">${t(product.source ? 'referenceSpecs' : 'illustrativePhoto')}
+        ${product.source ? `<a href="${escapeHtml(product.source)}">${t('referenceSource')}</a>` : ''}</p>` : ''}
+      ${preview || product.reference ? '' : `<div id="product-purchase">${purchaseControls(product)}</div><div class="product-pickup">${icon('box')}<div><strong>${t('pickupDetail')}</strong><p>${t('pickupHint')}</p></div></div>`}
     </div></article>${preview ? '' : relatedSection(product)}`;
 }
 function relatedSection(product) {
@@ -600,9 +574,6 @@ function render(preserve = false) {
   } else if (!isAdmin && (!path || path === 'home')) {
     // The landing page must not wait for the product API.
     markup = home();
-  } else if (!isAdmin && path.startsWith('sample/')) {
-    const sample = jewelrySamples.find(item => item.id === path.slice('sample/'.length));
-    markup = sample ? sampleDetail(sample) : page(t('shop'), `<p class="empty">${t('gone')}</p>`);
   } else if (catalogState !== 'ready') {
     markup = page(t(isAdmin ? 'admin' : 'shop'), `<p class="empty">${t(catalogState)}</p>`);
   } else if ((!localMode && isAdmin && path === 'admin/chat') || (!isAdmin && path === 'chat')) {
@@ -611,8 +582,9 @@ function render(preserve = false) {
     const id = path.split('/')[1];
     markup = adminPage(id === 'new' || catalog.all().some(item => item.id === id) ? id : null);
   } else if (path === 'catalog') markup = shop(params);
-  else if (path.startsWith('product/')) {
-    const p = published().find(item => productLink(item).slice(1) === path);
+  else if (path.startsWith('product/') || path.startsWith('sample/')) {
+    const productPath = path.replace(/^sample\//, 'product/');
+    const p = [...published(), ...catalogReferences].find(item => productLink(item).slice(1) === productPath);
     markup = p ? `<div class="page wrap"><a class="breadcrumb" href="${shopLink(p.category)}">← &nbsp; ${categoryName(p.category)}</a>${detail(p)}</div>`
       : page(t('shop'),`<p class="empty">${t('gone')}</p>`);
   } else if (path === 'cart') markup = cartPage();
