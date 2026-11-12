@@ -33,6 +33,8 @@ const chatCopy = {
   confirmTelegram:['Mijozga Telegram orqali bog‘lanish tugmasini yuborasizmi?','Отправить покупателю кнопку связи в Telegram?'],
   telegramInvite:['Menga Telegram orqali aloqaga chiqing.','Свяжитесь со мной в Telegram.'],
   openTelegram:['Telegram’da yozish','Написать в Telegram'],
+  telegramGreeting:['Assalomu aleykum!','Здравствуйте!'],
+  telegramMoreInfo:['Shu taqinchoq haqida ko‘proq ma’lumot olmoqchiman.','Хочу узнать больше об этом украшении.'],
   conversation:['Suhbat','Переписка'],
   backToChats:['Suhbatlar','К чатам'],
   writeMessage:['Xabar yozing…','Напишите сообщение…'],
@@ -263,11 +265,31 @@ function customerContactCard(contact) {
   </section>`;
 }
 
-function chatBubbles(messages, staffView) {
+function telegramDraftLink(thread) {
+  const products = thread.items.map(item => [
+    local(item),
+    item.sku && `${t('itemCode')}: ${item.sku}`,
+    item.purity && `${t('purity')}: ${item.purity}`,
+    item.weight && `${t('weight')}: ${number(item.weight)} ${lang ? 'г' : 'g'}`,
+    item.size && `${t('size')}: ${sizeText(item.size)}`,
+    `${t('itemPrice')}: ${money(item.price)}`
+  ].filter(Boolean).join('\n'));
+  const contact = [
+    ['contactFirst',thread.contact?.firstName],
+    ['contactLast',thread.contact?.lastName],
+    ['contactPhone',thread.contact?.phone]
+  ].filter(([,value]) => value).map(([label,value]) => `${t(label)}: ${value}`).join('\n');
+  const draft = [t('telegramGreeting'), ...products, contact, t('telegramMoreInfo')].filter(Boolean).join('\n\n');
+  return telegramContact + '?text=' + encodeURIComponent(draft);
+}
+
+function chatBubbles(messages, staffView, thread) {
   const timeFormat = new Intl.DateTimeFormat(lang ? 'ru-RU' : 'uz-Latn-UZ', {
     hour:'2-digit', minute:'2-digit'
   });
   const dayFormat = new Intl.DateTimeFormat(lang ? 'ru-RU' : 'uz-Latn-UZ', {dateStyle:'medium'});
+  const inviteUrl = !staffView && messages.some(message => message.sender === 'staff' && message.body === telegramInviteBody)
+    ? telegramDraftLink(thread) : telegramContact;
   let previousDay;
   return messages.map(message => {
     const date = new Date(message.created_at);
@@ -278,7 +300,7 @@ function chatBubbles(messages, staffView) {
     const side = staffMessage === staffView ? 'outgoing' : 'incoming';
     const label = t(staffMessage ? 'store' : 'visitor');
     const content = staffMessage && message.body === telegramInviteBody
-      ? `<p>${t('telegramInvite')}</p><a class="button chat-telegram-link" href="${telegramContact}" target="_blank" rel="noopener noreferrer">${telegramIcon}${t('openTelegram')}</a>`
+      ? `<p>${t('telegramInvite')}</p><a class="button chat-telegram-link" href="${escapeHtml(inviteUrl)}" target="_blank" rel="noopener noreferrer">${telegramIcon}${t('openTelegram')}</a>`
       : `<p>${escapeHtml(message.body)}</p>`;
     return `${divider}<div class="chat-bubble chat-bubble--${side}">
       <strong>${label}</strong>${content}
@@ -375,7 +397,7 @@ async function refreshChat() {
       </details>
       ${thread.archived_at ? `<p class="chat-closed">${t('chatClosed')}</p>` : !isAdmin ? `<p class="chat-received">${t('requestReceived')} · ${t('chatHelp')}</p>` : ''}
       <section class="chat-conversation" aria-label="${t('conversation')}">
-        <div class="chat-messages" role="log" tabindex="0" aria-label="${t('conversation')}">${chatBubbles(messages,isAdmin)}</div>
+        <div class="chat-messages" role="log" tabindex="0" aria-label="${t('conversation')}">${chatBubbles(messages,isAdmin,thread)}</div>
       </section>`);
     const messageList = target.querySelector('.chat-messages');
     messageList.scrollTop = followMessages ? messageList.scrollHeight : at;

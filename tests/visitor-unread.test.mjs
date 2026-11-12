@@ -44,18 +44,21 @@ test('unread endpoint authenticates thread secret before returning only the late
   const calls=[];
   const id='11111111-1111-1111-1111-111111111111';
   let authorized=false;
+  let invite=false;
   globalThis.fetch=async url=>{
     calls.push(url);
-    const data=url.includes('reservation_messages?') ? [{created_at:'2026-11-08T10:00:00Z'}] : authorized?[{
+    const data=url.includes('reservation_messages?') ? [{
+      created_at:'2026-11-08T10:00:00Z',sender:'staff',body:invite ? '[m-gold:telegram-invite]' : 'Salom'
+    }] : authorized?[{
       id,created_at:'2026-11-07T10:00:00Z',contact:{firstName:'Private'},items:[
         {uz:'Uzuk',ru:'Кольцо',photo:'ring photo.webp',price:1000000}
       ]
     }]:[];
     return {ok:true,text:async()=>JSON.stringify(data)};
   };
-  const run=async(summary=false)=>{
+  const run=async(summary=false, action='chat-unread')=>{
     const res={code:200,status(n){this.code=n;return this;},json(body){this.body=body;return this;}};
-    await reservation('chat-unread',{body:{id,secret:'22222222-2222-2222-2222-222222222222',summary}},res,false);
+    await reservation(action,{body:{id,secret:'22222222-2222-2222-2222-222222222222',summary}},res,false);
     return res;
   };
   try {
@@ -74,5 +77,10 @@ test('unread endpoint authenticates thread secret before returning only the late
         items:[{uz:'Uzuk',ru:'Кольцо',photo:'https://example.supabase.co/storage/v1/object/public/product-photos/ring%20photo.webp'}]
       }
     });
+    assert.equal((await run(false,'chat-read')).body.thread.contact,undefined);
+    invite=true;
+    assert.deepEqual((await run(false,'chat-read')).body.thread.contact,{firstName:'Private'});
+    authorized=false;
+    assert.equal((await run(false,'chat-read')).code,404);
   } finally {globalThis.fetch=oldFetch;}
 });
