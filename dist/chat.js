@@ -34,6 +34,10 @@ const chatCopy = {
   telegramInvite:['Menga Telegram orqali aloqaga chiqing.','Свяжитесь со мной в Telegram.'],
   openTelegram:['Telegram’da yozish','Написать в Telegram'],
   conversation:['Suhbat','Переписка'],
+  backToChats:['Suhbatlar','К чатам'],
+  writeMessage:['Xabar yozing…','Напишите сообщение…'],
+  sendingMessage:['Yuborilmoqda…','Отправляем…'],
+  reservationDetails:['Bron tafsilotlari','Детали брони'],
   noMessages:['Hali xabar yozilmagan.','Сообщений пока нет.'],
   chatHistory:['Bron suhbatlari','Чаты бронирования'],
   reservationItems:['Bron qilingan mahsulotlar','Товары в запросе'],
@@ -51,7 +55,7 @@ let startingChat = false;
 const contactKey = 'mg-reservation-contact';
 let savedContact = readLocal(contactKey,null);
 let startAttempt;
-let pendingMessage;
+const pendingMessages = new Map();
 const telegramInviteBody = '[m-gold:telegram-invite]';
 const telegramIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.7 3.6 2.8 10.9c-.9.4-.9 1 .1 1.3l4.8 1.5 11.2-7c.5-.3.9-.1.5.3l-9.1 8.3-.3 4.9c.5 0 .7-.2 1-.5l2.3-2.2 4.9 3.6c.9.5 1.5.2 1.7-.8l3.1-15.4c.2-1-.4-1.5-1.3-1.3Z"/></svg>';
 const telegramAttempts = new Map();
@@ -90,10 +94,20 @@ function markVisitorChatRead(thread, messages) {
 }
 
 async function refreshVisitorUnread() {
+  const needsSummaries = Boolean($('#chat-inbox'));
+  const summaries = new Map();
   await Promise.allSettled(visitorThreads.map(async access => {
-    const result = await catalogRequest('chat-unread', {id:access.id,secret:access.secret});
+    const needsPhoto = needsSummaries && !access.previewLoaded && !access.items?.[0]?.photo;
+    const result = await catalogRequest('chat-unread', {id:access.id,secret:access.secret, ...(needsPhoto ? {summary:true} : {})});
     visitorLatestTimes.set(access.id, result.latest ? Date.parse(result.latest) : 0);
+    if (result.summary) summaries.set(access.id,result.summary);
   }));
+  if (summaries.size) {
+    visitorThreads = visitorThreads.map(thread => summaries.has(thread.id)
+      ? {...thread,...summaries.get(thread.id),previewLoaded:true} : thread);
+    visitorThread = visitorThreads.find(thread => thread.id === visitorThread?.id) ?? null;
+    try { localStorage.setItem('mg-visitor-threads',JSON.stringify(visitorThreads)); } catch {}
+  }
   updateVisitorUnread();
 }
 
@@ -142,24 +156,49 @@ addEventListener('storage', event => {
 let currentStaffThread = null;
 let chatBusy = false;
 let chatRefreshQueued = false;
+let mobileThreadOpen = false;
+let displayedThread;
+let followSentThread;
+const chatDrafts = new Map();
+const sendingThreads = new Set();
+
+function selectedChatId() {
+  return isAdmin ? currentStaffThread : visitorThread?.id;
+}
+
+function setMobileThread(open) {
+  mobileThreadOpen = open;
+  const layout = $('.chat-layout');
+  layout?.classList.toggle('chat-thread-open', open);
+  if (layout && matchMedia('(max-width: 740px)').matches) {
+    const focus = open ? $('#chat-thread') : $('#chat-inbox')?.querySelector('[aria-pressed=true]');
+    focus?.focus({preventScroll:true});
+    layout.scrollIntoView({block:'start'});
+  }
+}
 
 function chatPage() {
   if (!isAdmin && (localMode || !visitorThreads.length)) {
     return page(t('chat'), `<section class="panel"><h2 class="chat-icon-heading">${icon('help')}${t('chatHistory')}</h2><div class="chat-welcome">${visitorChatEmpty()}</div></section>`, '#home', 'home');
   }
-  return page(t('chat'), `<div class="chat-layout">
-    <section class="panel stack"><h2 class="chat-icon-heading">${icon('help')}${t('chatHistory')}</h2>
+  return page(t('chat'), `<div class="chat-layout${mobileThreadOpen && selectedChatId() ? ' chat-thread-open' : ''}">
+    <section class="panel stack chat-sidebar"><h2 class="chat-icon-heading">${icon('help')}${t('chatHistory')}</h2>
       ${isAdmin ? `<button type="button" class="button secondary" id="enable-alerts">${icon('bell')}${t('enableAlerts')}</button>` : ''}
       <div id="chat-inbox"></div></section>
-    <section class="panel stack chat-panel"><div id="chat-thread" aria-live="polite"></div>
-      ${isAdmin ? `<button type="button" id="delete-chat" class="button secondary chat-delete" hidden>${icon('trash')}${t('deleteChat')}</button>` : ''}
-      <form id="chat-message" class="stack" hidden>
-        ${field('message','<textarea name="body" maxlength="1000" rows="2" required></textarea>')}
-        <div class="actions"><button class="button">${icon('send')}${t('send')}</button>
-          ${isAdmin ? `<button type="button" id="send-telegram" class="button secondary" ${sendingTelegram ? 'disabled' : ''}>${telegramIcon}${t('sendTelegram')}</button>` : ''}
-        </div>
-      </form>
-      <p id="chat-error" class="error" role="alert"></p>
+    <section class="panel chat-panel">
+      <button type="button" id="back-to-chats" class="text-action">← ${t('backToChats')}</button>
+      <div id="chat-thread" tabindex="-1"></div>
+      <div class="chat-compose">
+        <form id="chat-message" hidden>
+          <div class="chat-compose-row">
+            <textarea name="body" maxlength="1000" rows="2" required aria-label="${t('message')}" placeholder="${t('writeMessage')}"></textarea>
+            <button type="submit" class="button" aria-label="${t('send')}">${icon('send')}<span>${t('send')}</span></button>
+          </div>
+          ${isAdmin ? `<button type="button" id="send-telegram" class="text-action" ${sendingTelegram ? 'disabled' : ''}>${telegramIcon}${t('sendTelegram')}</button>` : ''}
+        </form>
+        <p id="chat-error" class="error" role="alert"></p>
+      </div>
+      ${isAdmin ? `<button type="button" id="delete-chat" class="text-action chat-delete" hidden>${icon('trash')}${t('deleteChat')}</button>` : ''}
     </section></div>`, isAdmin ? '#admin' : '#cart', isAdmin ? 'admin' : 'cart');
 }
 
@@ -189,15 +228,26 @@ function visitorChatEmpty() {
 }
 
 function showChatList(threads, selected) {
-  chatUpdate($('#chat-inbox'), threads.map(thread => {
-    const title = thread.items?.[0] ? local(thread.items[0]) : t('order');
-    const date = thread.created_at
-      ? new Intl.DateTimeFormat(lang ? 'ru-RU' : 'uz-Latn-UZ', {dateStyle:'short',timeStyle:'short'}).format(new Date(thread.created_at))
+  if (!$('#chat-inbox')) return;
+  const latest = new Map(isAdmin ? [...inbox.recent].reverse().map(message =>
+    [message.reservation_id, Date.parse(message.created_at)]) : visitorLatestTimes);
+  const activity = thread => Math.max(latest.get(thread.id) || 0, Date.parse(thread.created_at) || 0);
+  chatUpdate($('#chat-inbox'), [...threads].sort((a,b) => activity(b) - activity(a)).map(thread => {
+    const item = thread.items?.[0];
+    const title = item ? local(item) : t('order');
+    const date = activity(thread)
+      ? new Intl.DateTimeFormat(lang ? 'ru-RU' : 'uz-Latn-UZ', {dateStyle:'short',timeStyle:'short'}).format(activity(thread))
       : '';
     return `<button type="button" class="chat-choice" data-thread="${escapeHtml(thread.id)}" aria-pressed="${thread.id === selected}">
-      <strong class="chat-icon-heading">${icon('help')}${escapeHtml(title)}</strong><span>#${escapeHtml(thread.id.slice(0,8))}${date ? ' · ' + escapeHtml(date) : ''}</span>${(isAdmin ? unreadChats : visitorUnreadChats).has(thread.id) ? `<span class="unread-badge" aria-label="${t('unreadChat')}">1</span>` : ''}
+      ${chatThumbnail(thread.previewPhoto || (!isAdmin && item?.photo) || published().find(product => product.id === item?.id)?.photo)}
+      <span class="chat-choice-copy"><strong>${escapeHtml(title)}</strong><small>#${escapeHtml(thread.id.slice(0,8))}${date ? ' · ' + escapeHtml(date) : ''}</small></span>
+      ${(isAdmin ? unreadChats : visitorUnreadChats).has(thread.id) ? `<span class="unread-badge" aria-label="${t('unreadChat')}">1</span>` : ''}
     </button>`;
   }).join('') || (isAdmin ? `<p>${t('emptyChat')}</p>` : visitorChatEmpty()));
+}
+
+function chatThumbnail(photo) {
+  return `<span class="chat-thumb" aria-hidden="true">${icon('box')}${photo ? `<img src="${escapeHtml(photo)}" alt="" loading="lazy">` : ''}</span>`;
 }
 
 function customerContactCard(contact) {
@@ -217,16 +267,22 @@ function chatBubbles(messages, staffView) {
   const timeFormat = new Intl.DateTimeFormat(lang ? 'ru-RU' : 'uz-Latn-UZ', {
     hour:'2-digit', minute:'2-digit'
   });
+  const dayFormat = new Intl.DateTimeFormat(lang ? 'ru-RU' : 'uz-Latn-UZ', {dateStyle:'medium'});
+  let previousDay;
   return messages.map(message => {
+    const date = new Date(message.created_at);
+    const day = dayFormat.format(date);
+    const divider = day === previousDay ? '' : `<p class="chat-day">${escapeHtml(day)}</p>`;
+    previousDay = day;
     const staffMessage = message.sender === 'staff';
     const side = staffMessage === staffView ? 'outgoing' : 'incoming';
     const label = t(staffMessage ? 'store' : 'visitor');
     const content = staffMessage && message.body === telegramInviteBody
       ? `<p>${t('telegramInvite')}</p><a class="button chat-telegram-link" href="${telegramContact}" target="_blank" rel="noopener noreferrer">${telegramIcon}${t('openTelegram')}</a>`
       : `<p>${escapeHtml(message.body)}</p>`;
-    return `<div class="chat-bubble chat-bubble--${side}">
+    return `${divider}<div class="chat-bubble chat-bubble--${side}">
       <strong>${label}</strong>${content}
-      <time datetime="${escapeHtml(message.created_at)}">${timeFormat.format(new Date(message.created_at))}</time>
+      <time datetime="${escapeHtml(message.created_at)}">${timeFormat.format(date)}</time>
     </div>`;
   }).join('') || `<p class="muted chat-empty">${t('noMessages')}</p>`;
 }
@@ -240,8 +296,19 @@ function chatUpdate(target, markup) {
 
 function chatError(key) {
   const error = $('#chat-error');
-  if (error) error.textContent = key ? t(key) : '';
-  else if (key) inform(key);
+  const inMobileInbox = !mobileThreadOpen && matchMedia('(max-width: 740px)').matches;
+  if (error) error.textContent = key && !inMobileInbox ? t(key) : '';
+  if (key && (!error || inMobileInbox)) inform(key);
+}
+
+function syncChatComposer(id, threadChanged = false) {
+  const form = $('#chat-message');
+  const button = form.querySelector('[type=submit]');
+  const sending = sendingThreads.has(id);
+  button.disabled = sending;
+  button.setAttribute('aria-label', t(sending ? 'sendingMessage' : 'send'));
+  button.querySelector('span').textContent = t(sending ? 'sendingMessage' : 'send');
+  if (threadChanged) form.elements.body.value = chatDrafts.get(id) ?? '';
 }
 
 async function refreshChat() {
@@ -271,35 +338,50 @@ async function refreshChat() {
     }
 
     if (!isAdmin) await refreshVisitorUnread();
-    const id = isAdmin ? currentStaffThread : visitorThread?.id;
+    const id = selectedChatId();
     showChatList(isAdmin ? inbox.threads : visitorThreads, id);
-    if (!$('#chat-thread')) return;
+    const target = $('#chat-thread');
+    if (!target) return;
     if (!id) {
+      $('.chat-layout').classList.remove('chat-thread-open');
+      displayedThread = undefined;
       $('#chat-message').hidden = true;
       if (isAdmin) $('#delete-chat').hidden = true;
       chatUpdate($('#chat-thread'), `<p>${t(isAdmin ? 'chooseChat' : 'emptyChat')}</p>`);
       return;
     }
+    if (!mobileThreadOpen && matchMedia('(max-width: 740px)').matches) return;
     const access = isAdmin ? {id} : visitorThread;
     const {thread,messages} = await catalogRequest(isAdmin ? 'chat-staff-read' : 'chat-read',access);
-    if (id !== (isAdmin ? currentStaffThread : visitorThread?.id)) return;
-    const target = $('#chat-thread');
-    if (!target) return;
-    const receipt = thread.archived_at ? `<p class="chat-closed">${t('chatClosed')}</p>` : isAdmin ? '' : `<div class="reservation-receipt">
-      <span class="receipt-icon" aria-hidden="true">✓</span>
-      <div><strong>${t('requestReceived')}</strong><p>${t('requestReceivedDetail')}</p></div>
-    </div>`;
+    if (id !== selectedChatId() || target !== $('#chat-thread') ||
+        (!mobileThreadOpen && matchMedia('(max-width: 740px)').matches)) return;
+    const changed = displayedThread !== id || !target.querySelector('.chat-thread-heading');
+    const item = thread.items[0];
+    const contact = thread.contact;
+    const title = isAdmin ? [contact?.firstName, contact?.lastName].filter(Boolean).join(' ') : t('store');
+    const detailsOpen = !changed && target.querySelector('.chat-reservation')?.open;
     const previousMessages = target.querySelector('.chat-messages');
-    const followMessages = !previousMessages ||
+    const followMessages = changed || followSentThread === id || !previousMessages ||
       previousMessages.scrollHeight - previousMessages.scrollTop - previousMessages.clientHeight < 32;
-    chatUpdate(target, `${receipt}<p><strong>#${thread.id.slice(0,8)} · ${money(thread.total)}</strong></p>${isAdmin && thread.contact ? customerContactCard(thread.contact) : ''}<h3 class="chat-icon-heading">${icon('box')}${t('reservationItems')}</h3><ul class="chat-products">${chatItems(thread)}</ul>
-      ${isAdmin ? `<p class="muted">${t('chatHelp')}</p>` : ''}
+    const at = previousMessages?.scrollTop ?? 0;
+    chatUpdate(target, `<div class="chat-thread-heading">${chatThumbnail(item?.photo)}
+      <div><h2>${escapeHtml(title || t('visitor'))}</h2><p>${item ? escapeHtml(local(item)) + ' · ' : ''}#${escapeHtml(thread.id.slice(0,8))}</p></div></div>
+      <details class="chat-reservation" ${detailsOpen ? 'open' : ''}>
+        <summary><span>${t('reservationDetails')}</span><strong>${money(thread.total)}</strong></summary>
+        <div class="chat-reservation-content">
+          ${isAdmin && contact ? customerContactCard(contact) : ''}
+          <h3>${t('reservationItems')}</h3><ul class="chat-products">${chatItems(thread)}</ul>
+        </div>
+      </details>
+      ${thread.archived_at ? `<p class="chat-closed">${t('chatClosed')}</p>` : !isAdmin ? `<p class="chat-received">${t('requestReceived')} · ${t('chatHelp')}</p>` : ''}
       <section class="chat-conversation" aria-label="${t('conversation')}">
-        <h3 class="chat-icon-heading">${icon('help')}${t('conversation')}</h3>
-        <div class="chat-messages" tabindex="0" aria-label="${t('conversation')}">${chatBubbles(messages,isAdmin)}</div>
+        <div class="chat-messages" role="log" tabindex="0" aria-label="${t('conversation')}">${chatBubbles(messages,isAdmin)}</div>
       </section>`);
     const messageList = target.querySelector('.chat-messages');
-    if (followMessages) messageList.scrollTop = messageList.scrollHeight;
+    messageList.scrollTop = followMessages ? messageList.scrollHeight : at;
+    if (followSentThread === id) followSentThread = undefined;
+    displayedThread = id;
+    syncChatComposer(id, changed);
     $('#chat-message').hidden = Boolean(thread.archived_at);
     if (isAdmin) $('#delete-chat').hidden = Boolean(thread.archived_at);
     if (!isAdmin && !document.hidden) {
@@ -329,6 +411,10 @@ async function refreshChat() {
 document.addEventListener('click', async event => {
   const button = event.target.closest('button');
   if (!button) return;
+  if (button.id === 'back-to-chats') {
+    setMobileThread(false);
+    return;
+  }
   if (button.id === 'delete-chat') {
     const id = currentStaffThread;
     if (!isAdmin || !id || deletingChat || !window.confirm(t('confirmDeleteChat'))) return;
@@ -375,12 +461,18 @@ document.addEventListener('click', async event => {
     } catch { inform('alertsUnavailable'); }
   }
   if (button.dataset.thread) {
+    const oldId = selectedChatId();
+    const form = $('#chat-message');
+    if (oldId && displayedThread === oldId) chatDrafts.set(oldId,form.elements.body.value);
     if (isAdmin) currentStaffThread = button.dataset.thread;
     else visitorThread = visitorThreads.find(thread => thread.id === button.dataset.thread) ?? visitorThread;
-    chatUpdate($('#chat-thread'),`<p>${t('loading')}</p>`);
-    if (isAdmin) $('#delete-chat').hidden = true;
-    $('#chat-message').reset();
-    $('#chat-message').hidden = true;
+    if (displayedThread !== selectedChatId()) {
+      chatUpdate($('#chat-thread'),`<p class="chat-placeholder">${t('loading')}</p>`);
+      if (isAdmin) $('#delete-chat').hidden = true;
+      form.hidden = true;
+      displayedThread = undefined;
+    }
+    setMobileThread(true);
     chatError('');
     refreshChat();
   }
@@ -468,12 +560,13 @@ function openContactForm(productId) {
         savedContact = null;
         try { localStorage.removeItem(contactKey); } catch {}
       }
-      visitorThread = {id,secret,items:products.map(({uz,ru}) => ({uz,ru})),created_at:new Date().toISOString()};
+      visitorThread = {id,secret,items:products.map(({uz,ru,photo}) => ({uz,ru,photo})),created_at:new Date().toISOString()};
       visitorThreads = [visitorThread,...visitorThreads.filter(thread => thread.id !== id)];
       try { localStorage.setItem('mg-visitor-threads',JSON.stringify(visitorThreads)); } catch {}
       clearReservedCart(items);
       startAttempt = null;
       dialog.close();
+      mobileThreadOpen = true;
       location.hash = 'chat';
     } catch (error) {
       const key = ['invalidContact','cartUnavailable'].includes(error.message) ? error.message : 'chatError';
@@ -492,19 +585,32 @@ document.addEventListener('submit', async event => {
   event.preventDefault();
   const access = isAdmin ? {id:currentStaffThread} : visitorThread;
   const body = form.elements.body.value.trim();
-  const button = form.querySelector('button');
-  if (!access?.id || !body || button.disabled) return;
-  if (!pendingMessage || pendingMessage.body !== body || pendingMessage.id !== access.id) {
-    pendingMessage = {id:access.id,body,messageId:crypto.randomUUID()};
+  if (!access?.id || displayedThread !== access.id || !body || sendingThreads.has(access.id)) return;
+  let attempt = pendingMessages.get(access.id);
+  if (attempt?.body !== body) {
+    attempt = {body,messageId:crypto.randomUUID()};
+    pendingMessages.set(access.id,attempt);
   }
-  button.disabled = true;
-  const attempt = pendingMessage;
+  sendingThreads.add(access.id);
+  syncChatComposer(access.id);
   chatError('');
   try {
     await catalogRequest(isAdmin ? 'chat-staff-send' : 'chat-send',{...access,body,messageId:attempt.messageId});
-    if (pendingMessage === attempt) pendingMessage = null;
-    if (form.elements.body.value.trim() === body) form.reset();
+    pendingMessages.delete(access.id);
+    if (chatDrafts.get(access.id)?.trim() === body) chatDrafts.delete(access.id);
+    if (selectedChatId() === access.id && form.elements.body.value.trim() === body) form.reset();
+    followSentThread = access.id;
     refreshChat();
-  } catch { chatError('chatError'); }
-  finally { button.disabled = false; }
+  } catch {
+    if (selectedChatId() === access.id) chatError('chatError');
+  } finally {
+    sendingThreads.delete(access.id);
+    if ($('#chat-message') && selectedChatId() === access.id) syncChatComposer(access.id);
+  }
+});
+
+document.addEventListener('input', event => {
+  if (event.target.form?.id === 'chat-message' && displayedThread) {
+    chatDrafts.set(displayedThread,event.target.value);
+  }
 });

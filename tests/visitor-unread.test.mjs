@@ -46,16 +46,20 @@ test('unread endpoint authenticates thread secret before returning only the late
   let authorized=false;
   globalThis.fetch=async url=>{
     calls.push(url);
-    const data=url.includes('reservation_messages?') ? [{created_at:'2026-11-08T10:00:00Z'}] : authorized?[{id}]:[];
+    const data=url.includes('reservation_messages?') ? [{created_at:'2026-11-08T10:00:00Z'}] : authorized?[{
+      id,created_at:'2026-11-07T10:00:00Z',contact:{firstName:'Private'},items:[
+        {uz:'Uzuk',ru:'Кольцо',photo:'ring photo.webp',price:1000000}
+      ]
+    }]:[];
     return {ok:true,text:async()=>JSON.stringify(data)};
   };
-  const run=async()=>{
+  const run=async(summary=false)=>{
     const res={code:200,status(n){this.code=n;return this;},json(body){this.body=body;return this;}};
-    await reservation('chat-unread',{body:{id,secret:'22222222-2222-2222-2222-222222222222'}},res,false);
+    await reservation('chat-unread',{body:{id,secret:'22222222-2222-2222-2222-222222222222',summary}},res,false);
     return res;
   };
   try {
-    assert.equal((await run()).code,404);
+    assert.equal((await run(true)).code,404);
     assert.equal(calls.length,1);
     assert.match(calls[0],/visitor_hash=eq\.[0-9a-f]{64}/);
     authorized=true;
@@ -63,5 +67,12 @@ test('unread endpoint authenticates thread secret before returning only the late
     assert.deepEqual(result.body,{latest:'2026-11-08T10:00:00Z'});
     assert.match(calls.at(-1),/sender=eq.staff/);
     assert.match(calls.at(-1),/limit=1/);
+    assert.deepEqual((await run(true)).body,{
+      latest:'2026-11-08T10:00:00Z',
+      summary:{
+        created_at:'2026-11-07T10:00:00Z',
+        items:[{uz:'Uzuk',ru:'Кольцо',photo:'https://example.supabase.co/storage/v1/object/public/product-photos/ring%20photo.webp'}]
+      }
+    });
   } finally {globalThis.fetch=oldFetch;}
 });
