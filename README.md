@@ -37,3 +37,15 @@ Apply `supabase/product-trash.sql` before deploying this version. Admins can del
 Run deletion checks with `node --test tests/product-trash.test.mjs`.
 
 Product descriptions are optional in both languages (up to 1,500 characters). Apply `supabase/optional-description.sql` when upgrading an existing database.
+
+## Telegram bron bildirishnomalari
+
+Supabase SQL Editor’da `supabase/telegram-subscribers.sql` faylini ishga tushiring. Vercel loyihasining Production muhitiga `TELEGRAM_BOT_TOKEN` va `TELEGRAM_WEBHOOK_SECRET` qo‘shing. Webhook uchun `openssl rand -hex 32` bilan maxfiy qiymat yarating. Yangi muhit qiymatlarini ishga tushirish uchun loyihani qayta deploy qiling.
+
+Telegram Bot API’dagi [setWebhook](https://core.telegram.org/bots/api#setwebhook) so‘roviga quyidagi JSON maydonlarini bering. Bot tokenini serverda yoki mahalliy terminalning maxfiy muhit o‘zgaruvchisida saqlang.
+
+- `url` — `https://mgold-uz.vercel.app/api/telegram-webhook`
+- `secret_token` — Vercel’dagi `TELEGRAM_WEBHOOK_SECRET` qiymati
+- `allowed_updates` — `["message"]`
+
+Botning shaxsiy chatiga `/start` yuborganlar «Yangi bron» va «Yangi xabar» bildirishnomalarini oladi. `/stop` obunani bekor qiladi. Webhook ulanishidan oldin botni ishga tushirganlar yana `/start` yuborishi kerak.
