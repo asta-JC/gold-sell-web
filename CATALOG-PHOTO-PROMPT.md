@@ -1,0 +1,9 @@
+# M Gold catalog photo prompt
+
+Replace `{item}` with the jewelry description. When preparing a real M Gold listing, provide the shop's own photos of that exact piece as references.
+
+> Create a photorealistic three-panel e-commerce studio contact sheet of the SAME exact jewelry design: {item}. Landscape canvas with exactly THREE equal square panels placed edge to edge in one horizontal row, no gutters, no border, no text. Left panel: hero three-quarter front view at 45 degrees. Middle panel: true overhead top-down view. Right panel: low right-side profile at 90 degrees. In each square independently center and fully frame the whole jewelry item or complete set with 13–16% safe margins, including the full chain and all pieces. Rotate the camera around one physical object, preserving the exact gold color, silhouette, thickness, stone count, settings, engravings, link pattern, and closures across all angles. M Gold packshot style: warm sand-beige studio background, cream microsuede display with light beige travertine beneath it, warm directional sunlight from upper left with soft cast shadows, luxury macro photography, crisp detail, realistic gold reflections. Match scale, lighting and color across panels. No logos, engraving text, watermarks, people, unrelated items, inset views, overlapping panels or decorative props. The three views will be cut apart into separate square product images.
+
+For a listing based on actual inventory, verify the gallery against the piece before publishing. Use the three-quarter view as the cover, followed by the overhead and right-side views.
+
+The catalog samples draw on design references from [TillaBor's Uzbekistan catalog](https://tillabor.uz/uz), [TillaBor's chain catalog](https://tillabor.uz/uz/categories/chains), and [LUCENTO in Tashkent](https://lucento.uz/).

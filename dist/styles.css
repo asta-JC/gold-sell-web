@@ -128,6 +128,11 @@ a.customer-phone{text-decoration:underline;text-underline-offset:3px}
 .buyer-guide article p { max-width: 65ch; }
 .buyer-guide .text-action { margin-top: 5px; padding-inline: 0; }
 
+.sample-section { margin-top: 24px; }
+.sample-section h2 { font-size: clamp(1.5rem, 3vw, 2.25rem); }
+.sample-section > p { margin: 8px 0 16px; }
+.sample-section .card h3 { overflow-wrap: anywhere; }
+
 .storefront .nav a { gap: 7px; }
 .storefront .nav .icon {
   width: 18px;
