@@ -129,6 +129,7 @@ a.customer-phone{text-decoration:underline;text-underline-offset:3px}
 .buyer-guide .text-action { margin-top: 5px; padding-inline: 0; }
 
 .reference-note a { text-decoration: underline; text-underline-offset: 3px; }
+.storefront .has-multiple-photos .gallery-zoom { touch-action: pan-y pinch-zoom; }
 
 .storefront .nav a { gap: 7px; }
 .storefront .nav .icon {

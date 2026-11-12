@@ -388,7 +388,7 @@ function relatedProducts(product) {
 }
 function productGallery(product, angleLabels = []) {
   const photos = productPhotos(product);
-  return `<div class="product-gallery"><button type="button" class="gallery-zoom" aria-label="${t('zoomPhoto')}"><img class="gallery-main" src="${escapeHtml(photos[0])}" alt="${escapeHtml(local(product))}"><span class="gallery-zoom-hint">${icon('search')}<span>${t('zoomPhoto')}</span></span></button>
+  return `<div class="product-gallery${photos.length > 1 ? ' has-multiple-photos' : ''}"><button type="button" class="gallery-zoom" aria-label="${t('zoomPhoto')}"><img class="gallery-main" src="${escapeHtml(photos[0])}" alt="${escapeHtml(local(product))}"><span class="gallery-zoom-hint">${icon('search')}<span>${t('zoomPhoto')}</span></span></button>
       ${photos.length > 1 ? `<div class="photo-list">${photos.map((photo,index) =>
         `<button type="button" data-gallery-photo="${escapeHtml(photo)}" aria-label="${angleLabels[index] ?? (t('photo') + ' ' + (index + 1))}" aria-pressed="${index === 0}"><img src="${escapeHtml(photo)}" alt=""></button>`).join('')}</div>` : ''}</div>`;
 }
@@ -714,15 +714,44 @@ document.addEventListener('submit', async event => {
     if (!photoLoading) editorAction('save');
   }
 });
+function selectGalleryPhoto(button) {
+  const gallery = button.closest('.product-gallery');
+  gallery.querySelector('.gallery-main').src = button.dataset.galleryPhoto;
+  gallery.querySelectorAll('[data-gallery-photo]').forEach(option =>
+    option.setAttribute('aria-pressed', String(option === button)));
+}
+
+let gallerySwipe;
+document.addEventListener('touchstart', event => {
+  gallerySwipe = undefined;
+  if (event.touches.length !== 1) return;
+  const photo = event.target.closest('.storefront .has-multiple-photos .gallery-zoom');
+  if (!photo) return;
+  const {identifier, clientX, clientY} = event.touches[0];
+  gallerySwipe = {photo, identifier, clientX, clientY};
+}, {passive:true});
+document.addEventListener('touchcancel', () => { gallerySwipe = undefined; }, {passive:true});
+document.addEventListener('touchend', event => {
+  const start = gallerySwipe;
+  gallerySwipe = undefined;
+  if (!start?.photo.isConnected || !event.cancelable) return;
+  const touch = Array.from(event.changedTouches).find(item => item.identifier === start.identifier);
+  if (!touch) return;
+  const dx = touch.clientX - start.clientX;
+  const dy = touch.clientY - start.clientY;
+  if (Math.abs(dx) < 42 || Math.abs(dx) <= Math.abs(dy) * 1.35) return;
+
+  event.preventDefault();
+  const photos = Array.from(start.photo.closest('.product-gallery').querySelectorAll('[data-gallery-photo]'));
+  const current = photos.findIndex(button => button.getAttribute('aria-pressed') === 'true');
+  const next = photos[current + (dx < 0 ? 1 : -1)];
+  if (next) selectGalleryPhoto(next);
+}, {passive:false});
+
 document.addEventListener('click', async event => {
   const button = event.target.closest('button');
   if (button?.classList.contains('gallery-zoom')) { openProductZoom(button); return; }
-  if (button?.dataset.galleryPhoto) {
-    const gallery = button.closest('.product-gallery');
-    gallery.querySelector('.gallery-main').src = button.dataset.galleryPhoto;
-    gallery.querySelectorAll('[data-gallery-photo]').forEach(option =>
-      option.setAttribute('aria-pressed', String(option === button)));
-  }
+  if (button?.dataset.galleryPhoto) selectGalleryPhoto(button);
   if (button?.dataset.removePhoto !== undefined && !photoLoading && !saving) {
     adminEdit.photos = productPhotos(adminEdit).filter((_,index) => index !== Number(button.dataset.removePhoto));
     adminEdit.photo = adminEdit.photos[0] ?? '';
